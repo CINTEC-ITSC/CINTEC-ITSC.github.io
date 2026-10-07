@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Catch - Arcade Claw Machine</title>
+<style>
+/* =========================================
+CSS VARIABLES & GLOBAL STYLES
+========================================= */
+:root {
+--neon-pink: #ff007f;
+--neon-blue: #00f3ff;
+--neon-purple: #b000ff;
+--cab-dark: #1a1a24;
+--cab-light: #2d2d3e;
+}
+
+body {
+margin: 0;
+padding: 20px;
+background-color: #05050a;
+background-image: radial-gradient(circle at center, #111 0%, #000 100%);
+color: #fff;
+font-family: 'Courier New', Courier, monospace;
+display: flex;
+align-items: center;
+justify-content: center;
+min-height: 100vh;
+overflow: hidden;
+touch-action: none; /* Prevent zooming on mobile */
+}
+
+/* =========================================
+ARCADE CABINET STYLING
+========================================= */
+#arcade-machine {
+background: linear-gradient(135deg, var(--cab-light) 0%, var(--cab-dark) 100%);
+padding: 0 20px 20px 20px;
+border-radius: 20px 20px 10px 10px;
+border: 4px solid #444;
+box-shadow:
+0 0 40px rgba(0, 243, 255, 0.2),
+inset 0 0 20px #000,
+0 20px 50px rgba(0,0,0,0.8);
+display: flex;
+flex-direction: column;
+align-items: center;
+position: relative;
+width: 100%;
+max-width: 800px;
+}
+
+/* Marquee Header */
+#marquee {
+width: calc(100% + 40px); /* Extend past padding */
+background: #000;
+text-align: center;
+padding: 15px 0;
+border-radius: 15px 15px 0 0;
+border-bottom: 4px solid var(--neon-purple);
+box-shadow: 0 10px 20px rgba(176, 0, 255, 0.4);
+margin-bottom: 20px;
+}
+
+h1 {
+margin: 0;
+font-size: 3rem;
+color: #fff;
+font-family: 'Impact', sans-serif;
+font-style: italic;
+text-shadow:
+0 0 5px #fff,
+0 0 10px #fff,
+0 0 20px var(--neon-pink),
+0 0 40px var(--neon-pink),
+0 0 80px var(--neon-pink);
+letter-spacing: 8px;
+}
+
+/* Screen Wrapper (Canvas + Overlays) */
+#screen-wrapper {
+position: relative;
+width: 100%;
+aspect-ratio: 4 / 3;
+background: #000;
+border: 8px solid #111;
+border-radius: 15px;
+box-shadow:
+0 0 0 4px var(--neon-blue),
+0 0 20px var(--neon-blue),
+inset 0 0 30px #000;
+overflow: hidden;
+}
+
+canvas {
+display: block;
+width: 100%;
+height: 100%;
+}
+
+/* CRT Scanline Effect */
+.scanlines {
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: linear-gradient(
+to bottom,
+rgba(255,255,255,0),
+rgba(255,255,255,0) 50%,
+rgba(0,0,0,0.2) 50%,
+rgba(0,0,0,0.2)
+);
+background-size: 100% 4px;
+pointer-events: none;
+z-index: 5;
+}
+
+/* Vignette overlay */
+.vignette {
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%);
+pointer-events: none;
+z-index: 4;
+}
+
+/* HUD Overlays */
+.hud {
+position: absolute;
+font-size: 1.2rem;
+font-weight: bold;
+color: var(--neon-blue);
+text-shadow: 0 0 8px var(--neon-blue), 2px 2px 0 #000;
+z-index: 10;
+background: rgba(0,0,0,0.5);
+padding: 5px 10px;
+border-radius: 5px;
+border: 1px solid var(--neon-blue);
+}
+#score-display { top: 15px; left: 15px; }
+#tries-display { top: 15px; right: 15px; }
+#time-display {
+top: 15px;
+left: 50%;
+transform: translateX(-50%);
+color: var(--neon-pink);
+text-shadow: 0 0 8px var(--neon-pink), 2px 2px 0 #000;
+border-color: var(--neon-pink);
+font-size: 1.5rem;
+}
+
+/* Game Over Screen */
+#game-over-screen {
+position: absolute;
+top: 0; left: 0; width: 100%; height: 100%;
+background: rgba(0, 0, 0, 0.85);
+display: none;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 20;
+backdrop-filter: blur(4px);
+}
+
+#game-over-screen h2 {
+font-size: 3.5rem;
+margin: 0 0 10px 0;
+color: var(--neon-pink);
+text-shadow: 0 0 20px var(--neon-pink);
+font-family: 'Impact', sans-serif;
+letter-spacing: 5px;
+}
+
+#final-score {
+font-size: 1.5rem;
+margin-bottom: 30px;
+color: #fff;
+}
+
+#game-over-screen button {
+font-size: 1.5rem;
+padding: 15px 40px;
+background: transparent;
+color: var(--neon-blue);
+border: 2px solid var(--neon-blue);
+box-shadow: 0 0 15px var(--neon-blue), inset 0 0 15px var(--neon-blue);
+}
+
+/* =========================================
+CONTROL PANEL & LOWER CABINET
+========================================= */
+.controls {
+display: flex;
+gap: 20px;
+margin-top: 30px;
+width: 100%;
+justify-content: center;
+}
+
+button {
+background: linear-gradient(to bottom, #444, #222);
+color: #fff;
+border: 2px solid #666;
+padding: 20px 30px;
+font-size: 1.2rem;
+font-family: inherit;
+font-weight: bold;
+border-radius: 50px;
+cursor: pointer;
+box-shadow: 0 8px 0 #111, 0 15px 20px rgba(0,0,0,0.5);
+transition: transform 0.1s, box-shadow 0.1s;
+user-select: none;
+text-transform: uppercase;
+outline: none;
+}
+
+button:active {
+transform: translateY(8px);
+box-shadow: 0 0 0 #111, 0 5px 10px rgba(0,0,0,0.5);
+background: linear-gradient(to bottom, #333, #111);
+}
+
+#btn-drop {
+border-color: var(--neon-pink);
+color: var(--neon-pink);
+padding: 20px 50px;
+}
+
+#btn-left, #btn-right {
+border-color: var(--neon-blue);
+color: var(--neon-blue);
+}
+
+/* Decorative Lower Cabinet Elements */
+.lower-cabinet {
+display: flex;
+justify-content: space-between;
+width: 80%;
+margin-top: 30px;
+padding-top: 20px;
+border-top: 2px solid #222;
+}
+
+.coin-slot {
+width: 40px;
+height: 60px;
+background: #111;
+border: 2px solid #444;
+border-radius: 5px;
+position: relative;
+box-shadow: inset 0 5px 10px #000;
+}
+
+.coin-slot::after {
+content: '';
+position: absolute;
+top: 15px; left: 17px;
+width: 6px; height: 30px;
+background: #ff0000;
+box-shadow: 0 0 5px #ff0000;
+border-radius: 3px;
+}
+
+.vents {
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+
+.vent-line {
+width: 100px;
+height: 6px;
+background: #111;
+border-radius: 3px;
+box-shadow: inset 0 2px 5px #000, 0 1px 1px #444;
+}
+</style>
+</head>
+<body>
+
+<div id="arcade-machine">
+<div id="marquee">
+<h1>夾南瓜🎃</h1>
+</div>
+
+<div id="screen-wrapper">
+<!-- HUD -->
+<div id="score-display" class="hud">Bears: 0</div>
+<div id="time-display" class="hud">Time: 60</div>
+<div id="tries-display" class="hud">Tries: 10</div>
+
+<!-- Effects -->
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<!-- Game Canvas -->
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="game-over-screen">
+<h2 id="go-title">遊戲結束</h2>
+<div id="final-score">你夾到0隻南瓜!</div>
+<button id="btn-restart">Play Again 🕹️</button>
+</div>
+</div>
+
+<div class="controls">
+<button id="btn-left">◀ L</button>
+<button id="btn-drop">夾 </button>  
+<button id="btn-right">R ▶</button>
+</div>
+
+<!-- Decorative Arcade Details -->
+<div class="lower-cabinet">
+<div class="coin-slot"></div>
+<div class="vents">
+<div class="vent-line"></div>
+<div class="vent-line"></div>
+<div class="vent-line"></div>
+<div class="vent-line"></div>
+</div>
+<div class="coin-slot"></div>
+</div>
+</div>
+
+<script>
+/**
+* =========================================
+* GAME CONFIGURATION & PHYSICS
+* =========================================
+*/
+const CONFIG = {
+timeLimit: 60, // Game duration in seconds
+startTries: 10, // Number of attempts per game
+bearCount: 35,
+winProbability: 0.70,
+
+// --- 5X FASTER SPEEDS ---
+clawSpeedX: 18, // (was 9)
+clawDropSpeed: 24, // (was 14)
+clawReturnSpeed: 20, // (was 10)
+
+// --- SUPER SNAPPY PAUSES ---
+grabPauseTime: 30, // Ultra-fast pause (was 150ms)
+releasePauseTime: 30, // Ultra-fast release (was 150ms)
+
+chuteWidth: 160,
+bearSize: 75,
+bearHitboxX: 55
+};
+
+// --- DOM Elements ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score-display');
+const triesEl = document.getElementById('tries-display');
+const timeEl = document.getElementById('time-display');
+const gameOverScreen = document.getElementById('game-over-screen');
+const finalScoreEl = document.getElementById('final-score');
+const goTitle = document.getElementById('go-title');
+
+// --- Game State ---
+let bears = [];
+let score = 0;
+let tries = CONFIG.startTries;
+let timeLeft = CONFIG.timeLimit;
+let isGameOver = false;
+let timerInterval = null;
+
+// --- Claw State Machine ---
+const claw = {
+x: 400,
+y: 60,
+baseY: 60,
+targetY: 510,
+state: 'IDLE',
+isOpen: true,
+grabbedBear: null,
+timer: 0
+};
+
+// --- Input Tracking ---
+const input = {
+left: false,
+right: false,
+dropTriggered: false
+};
+
+// --- Background Stars Data ---
+const stars = Array.from({length: 50}, () => ({
+x: Math.random() * canvas.width,
+y: Math.random() * canvas.height,
+size: Math.random() * 2,
+alpha: Math.random()
+}));
+
+/**
+* =========================================
+* INITIALIZATION & TIMER LOGIC
+* =========================================
+*/
+function initGame() {
+bears = [];
+score = 0;
+tries = CONFIG.startTries;
+timeLeft = CONFIG.timeLimit;
+isGameOver = false;
+
+claw.x = canvas.width / 2;
+claw.y = claw.baseY;
+claw.state = 'IDLE';
+claw.isOpen = true;
+claw.grabbedBear = null;
+
+gameOverScreen.style.display = 'none';
+updateHUD();
+
+// Populate bears
+for (let i = 0; i < CONFIG.bearCount; i++) {
+bears.push({
+id: i,
+x: CONFIG.chuteWidth + 40 + Math.random() * (canvas.width - CONFIG.chuteWidth - 80),
+y: canvas.height - 45 - Math.random() * 100,
+rotation: (Math.random() - 0.5) * 0.8,
+isCaught: false,
+inChute: false
+});
+}
+
+// Start Timer
+if(timerInterval) clearInterval(timerInterval);
+timerInterval = setInterval(() => {
+if(isGameOver) return;
+
+timeLeft--;
+updateHUD();
+
+if(timeLeft <= 0) {
+timeLeft = 0;
+triggerGameOver("time's up!");
+}
+}, 1000);
+}
+
+function updateHUD() {
+scoreEl.innerText = `🎃: ${score}`;
+triesEl.innerText = `🕹️: ${tries}`;
+timeEl.innerText = `⌛: ${timeLeft}`;
+timeEl.style.color = timeLeft <= 10 ? '#ff0000' : 'var(--neon-pink)';
+}
+
+function triggerGameOver(reasonStr) {
+isGameOver = true;
+clearInterval(timerInterval);
+goTitle.innerText = reasonStr || "遊戲結束";
+finalScoreEl.innerText = `你夾到 ${score} 隻南瓜!`;
+gameOverScreen.style.display = 'flex';
+}
+
+/**
+* =========================================
+* MAIN GAME LOOP & LOGIC
+* =========================================
+*/
+function loop() {
+requestAnimationFrame(loop);
+update();
+draw();
+}
+
+function update() {
+if (isGameOver) return;
+
+switch (claw.state) {
+case 'IDLE':
+if (input.left && claw.x > CONFIG.chuteWidth + 30) {
+claw.x -= CONFIG.clawSpeedX;
+}
+if (input.right && claw.x < canvas.width - 30) {
+claw.x += CONFIG.clawSpeedX;
+}
+if (input.dropTriggered && tries > 0) {
+claw.state = 'DROPPING';
+input.dropTriggered = false;
+}
+break;
+
+case 'DROPPING':
+claw.y += CONFIG.clawDropSpeed;
+
+if (claw.y >= claw.targetY) {
+claw.y = claw.targetY;
+claw.state = 'GRABBING';
+claw.timer = Date.now();
+claw.isOpen = false;
+
+let closestBear = null;
+let minDistance = Infinity;
+
+bears.forEach(bear => {
+if (!bear.isCaught && !bear.inChute) {
+let dist = Math.abs(bear.x - claw.x);
+if (dist < minDistance) {
+minDistance = dist;
+closestBear = bear;
+}
+}
+});
+
+if (closestBear && minDistance <= CONFIG.bearHitboxX) {
+if (Math.random() <= CONFIG.winProbability) {
+claw.grabbedBear = closestBear;
+closestBear.isCaught = true;
+}
+}
+}
+break;
+
+case 'GRABBING':
+if (Date.now() - claw.timer > CONFIG.grabPauseTime) {
+claw.state = 'RETURNING_UP';
+}
+break;
+
+case 'RETURNING_UP':
+claw.y -= CONFIG.clawReturnSpeed;
+
+if (claw.grabbedBear) {
+claw.grabbedBear.x = claw.x;
+claw.grabbedBear.y = claw.y + 50;
+}
+
+if (claw.y <= claw.baseY) {
+claw.y = claw.baseY;
+claw.state = 'RETURNING_LEFT';
+}
+break;
+
+case 'RETURNING_LEFT':
+if (claw.x > 80) {
+claw.x -= CONFIG.clawReturnSpeed;
+if (claw.grabbedBear) claw.grabbedBear.x = claw.x;
+} else {
+claw.state = 'RELEASING';
+claw.timer = Date.now();
+claw.isOpen = true;
+}
+break;
+
+case 'RELEASING':
+if (claw.grabbedBear) {
+claw.grabbedBear.y += CONFIG.clawDropSpeed * 2;
+
+if (claw.grabbedBear.y > canvas.height + 75) {
+claw.grabbedBear.inChute = true;
+claw.grabbedBear = null;
+score++;
+updateHUD();
+}
+}
+
+if (Date.now() - claw.timer > CONFIG.releasePauseTime && !claw.grabbedBear) {
+tries--;
+updateHUD();
+
+if (tries <= 0 && timeLeft > 0) {
+triggerGameOver("OUT OF TRIES!");
+} else {
+claw.state = 'IDLE';
+}
+}
+break;
+}
+}
+
+/**
+* =========================================
+* RENDERING / CANVAS DRAWING
+* =========================================
+*/
+function draw() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+bgGrad.addColorStop(0, '#110022');
+bgGrad.addColorStop(1, '#001122');
+ctx.fillStyle = bgGrad;
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+stars.forEach(star => {
+ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+ctx.beginPath();
+ctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
+ctx.fill();
+});
+
+ctx.fillStyle = 'rgba(0, 243, 255, 0.05)';
+ctx.fillRect(0, 0, CONFIG.chuteWidth, canvas.height);
+ctx.strokeStyle = 'var(--neon-blue)';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.moveTo(CONFIG.chuteWidth, 0);
+ctx.lineTo(CONFIG.chuteWidth, canvas.height);
+ctx.stroke();
+ctx.fillStyle = '#050505';
+ctx.fillRect(15, canvas.height - 180, CONFIG.chuteWidth - 30, 180);
+ctx.strokeStyle = '#333';
+ctx.strokeRect(15, canvas.height - 180, CONFIG.chuteWidth - 30, 180);
+
+ctx.font = `${CONFIG.bearSize}px Arial`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+
+bears.forEach(bear => {
+if (bear.inChute) return;
+ctx.save();
+ctx.translate(bear.x, bear.y);
+ctx.rotate(bear.rotation);
+ctx.shadowColor = 'rgba(0,0,0,0.8)';
+ctx.shadowBlur = 10;
+ctx.shadowOffsetY = 5;
+ctx.fillText('🎃', 0, 0);
+ctx.restore();
+});
+
+ctx.strokeStyle = '#888';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.moveTo(claw.x, 0);
+ctx.lineTo(claw.x, claw.y);
+ctx.stroke();
+
+const clawGrad = ctx.createLinearGradient(claw.x - 15, claw.y - 15, claw.x + 15, claw.y + 15);
+clawGrad.addColorStop(0, '#e0e0e0');
+clawGrad.addColorStop(1, '#666666');
+ctx.fillStyle = clawGrad;
+ctx.beginPath();
+ctx.arc(claw.x, claw.y, 20, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#ff007f';
+ctx.beginPath();
+ctx.arc(claw.x, claw.y, 7, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.strokeStyle = clawGrad;
+ctx.lineWidth = 8;
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+const prongAngle = claw.isOpen ? Math.PI / 3 : Math.PI / 8;
+const prongLength = 65;
+ctx.beginPath();
+ctx.moveTo(claw.x - 15, claw.y + 10);
+ctx.lineTo(claw.x - 15 - Math.sin(prongAngle) * prongLength, claw.y + 10 + Math.cos(prongAngle) * prongLength);
+ctx.lineTo(claw.x - 15, claw.y + 20 + Math.cos(prongAngle) * prongLength);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(claw.x + 15, claw.y + 10);
+ctx.lineTo(claw.x + 15 + Math.sin(prongAngle) * prongLength, claw.y + 10 + Math.cos(prongAngle) * prongLength);
+ctx.lineTo(claw.x + 15, claw.y + 20 + Math.cos(prongAngle) * prongLength);
+ctx.stroke();
+
+ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+ctx.beginPath();
+ctx.moveTo(150, 0);
+ctx.lineTo(350, canvas.height);
+ctx.lineTo(500, canvas.height);
+ctx.lineTo(300, 0);
+ctx.fill();
+}
+
+// --- INPUT HANDLING ---
+window.addEventListener('keydown', (e) => {
+if (e.code === 'ArrowLeft') input.left = true;
+if (e.code === 'ArrowRight') input.right = true;
+if (e.code === 'Space') {
+e.preventDefault();
+if (claw.state === 'IDLE' && !isGameOver) {
+input.dropTriggered = true;
+}
+}
+});
+
+window.addEventListener('keyup', (e) => {
+if (e.code === 'ArrowLeft') input.left = false;
+if (e.code === 'ArrowRight') input.right = false;
+});
+
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+const btnDrop = document.getElementById('btn-drop');
+const btnRestart = document.getElementById('btn-restart');
+
+function bindButtonHold(btn, propName) {
+btn.addEventListener('mousedown', (e) => { e.preventDefault(); input[propName] = true; });
+btn.addEventListener('touchstart', (e) => { e.preventDefault(); input[propName] = true; }, {passive: false});
+btn.addEventListener('mouseup', () => { input[propName] = false; });
+btn.addEventListener('mouseleave', () => { input[propName] = false; });
+btn.addEventListener('touchend', () => { input[propName] = false; });
+}
+bindButtonHold(btnLeft, 'left');
+bindButtonHold(btnRight, 'right');
+
+function handleDrop(e) {
+e.preventDefault();
+if (claw.state === 'IDLE' && !isGameOver) {
+input.dropTriggered = true;
+}
+}
+btnDrop.addEventListener('mousedown', handleDrop);
+btnDrop.addEventListener('touchstart', handleDrop, {passive: false});
+btnRestart.addEventListener('click', initGame);
+btnRestart.addEventListener('touchstart', (e) => { e.preventDefault(); initGame(); }, {passive: false});
+
+initGame();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
+
