@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acrobatic Train (アクロバティックトレイン)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b132b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 100vh;
+            max-height: 700px;
+            background: #111;
+            box-shadow: 0 0 30px rgba(0,255,200,0.2);
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* HUD UI Elements */
+        .hud {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .hud-panel {
+            background: rgba(10, 20, 40, 0.75);
+            border: 2px solid #00f0ff;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+            border-radius: 8px;
+            padding: 10px 16px;
+            backdrop-filter: blur(4px);
+        }
+        .score-box {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #fff;
+            text-shadow: 0 0 8px #00f0ff;
+        }
+        .speed-box {
+            font-size: 14px;
+            color: #ff0;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        .wheels-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+        .wheel-status {
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .track-badge {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 50%;
+            background: #ff0055;
+            color: #fff;
+            font-size: 12px;
+            box-shadow: 0 0 6px #ff0055;
+        }
+        .track-badge.rear {
+            background: #00e5ff;
+            box-shadow: 0 0 6px #00e5ff;
+        }
+
+        /* Overlay Screens */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 15, 30, 0.88);
+            backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 20px;
+            text-align: center;
+        }
+        .hidden {
+            display: none !important;
+        }
+        h1 {
+            font-size: 38px;
+            margin-bottom: 5px;
+            color: #00f0ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.8), 0 0 30px rgba(0, 240, 255, 0.4);
+        }
+        h2.subtitle {
+            font-size: 18px;
+            color: #ff0055;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.6);
+        }
+        .instructions-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            margin-bottom: 25px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .instructions-card h3 {
+            color: #ffea00;
+            margin-bottom: 10px;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+        .key-badge {
+            background: #2a3b5c;
+            border: 1px solid #00f0ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #00f0ff;
+        }
+        .btn {
+            background: linear-gradient(45deg, #ff0055, #ff5500);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.9);
+        }
+        .game-over-stats {
+            font-size: 20px;
+            margin: 15px 0 25px;
+            line-height: 1.8;
+            color: #ddd;
+        }
+        .game-over-stats span {
+            color: #00f0ff;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        /* On-Screen Mobile Controls */
+        .touch-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .touch-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            pointer-events: auto;
+        }
+        .touch-title {
+            font-size: 11px;
+            font-weight: bold;
+            text-shadow: 0 0 4px #000;
+            background: rgba(0,0,0,0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .touch-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .t-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: rgba(10, 20, 40, 0.7);
+            border: 2px solid #00f0ff;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            box-shadow: 0 0 10px rgba(0,240,255,0.3);
+        }
+        .t-btn:active {
+            background: #00f0ff;
+            color: #000;
+        }
+        .t-btn.rear {
+            border-color: #ff0055;
+            box-shadow: 0 0 10px rgba(255,0,85,0.3);
+        }
+        .t-btn.rear:active {
+            background: #ff0055;
+            color: #fff;
+        }
+        @media (min-width: 768px) {
+            .touch-controls {
+                display: none; /* Hide on large desktop screens by default, active if touched */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Real-time HUD -->
+    <div class="hud">
+        <div class="hud-panel">
+            <div class="score-box">SCORE: <span id="scoreVal">0</span></div>
+            <div class="speed-box">SPEED: <span id="speedVal">100</span> km/h | DIST: <span id="distVal">0</span>m</div>
+        </div>
+        <div class="hud-panel wheels-indicator">
+            <div class="wheel-status">
+                FRONT WHEELS: <span class="track-badge" id="frontBadge">2</span>
+            </div>
+            <div class="wheel-status">
+                REAR WHEELS: <span class="track-badge rear" id="rearBadge">2</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- On-screen Touch Controls -->
+    <div class="touch-controls" id="touchControls">
+        <div class="touch-group">
+            <div class="touch-title" style="color:#00f0ff;">FRONT WHEELS</div>
+            <div class="touch-btns">
+                <div class="t-btn" id="btnFrontLeft">&#9664;</div>
+                <div class="t-btn" id="btnFrontRight">&#9654;</div>
+            </div>
+        </div>
+        <div class="touch-group">
+            <div class="touch-title" style="color:#ff0055;">REAR WHEELS</div>
+            <div class="touch-btns">
+                <div class="t-btn rear" id="btnRearLeft">&#9664;</div>
+                <div class="t-btn rear" id="btnRearRight">&#9654;</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div class="overlay" id="startScreen">
+        <h1>Acrobatic Train</h1>
+        <h2 class="subtitle">アクロバティックトレイン</h2>
+        
+        <div class="instructions-card">
+            <h3>How to Play</h3>
+            <div class="control-row">
+                <span>Front Wheels Left / Right</span>
+                <div><span class="key-badge">&larr;</span> <span class="key-badge">&rarr;</span></div>
+            </div>
+            <div class="control-row">
+                <span>Rear Wheels Left / Right</span>
+                <div><span class="key-badge">A</span> <span class="key-badge">D</span></div>
+            </div>
+            <p style="margin-top: 10px;">
+                &#128646; <strong>Acrobatic Tilt:</strong> Put Front & Rear wheels on different tracks to tilt dynamically across tracks!
+            </p>
+            <p style="margin-top: 6px;">
+                &#128142; <strong>Between-Track Collectibles:</strong> Tilt diagonally to collect diamonds between tracks!
+            </p>
+            <p style="margin-top: 6px;">
+                &#11088; <strong>Ramp Jump Boost:</strong> Hit ramps while tilted diagonally for extreme jump height and high-altitude stars!
+            </p>
+            <p style="margin-top: 6px; color:#ff5555;">
+                &#9888; Avoid Rocks, Oncoming Trains &amp; No Entry Signs!
+            </p>
+        </div>
+
+        <button class="btn" id="startBtn">START GAME</button>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div class="overlay hidden" id="gameOverScreen">
+        <h1 style="color: #ff0055;">DERAILED!</h1>
+        <h2 class="subtitle">GAME OVER</h2>
+        
+        <div class="game-over-stats">
+            Final Score: <br><span id="finalScore">0</span><br><br>
+            Distance Traveled: <br><span id="finalDist">0</span> meters
+        </div>
+
+        <button class="btn" id="restartBtn">TRY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    // --- Audio Synthesizer (Web Audio API) ---
+    class SoundEffects {
+        constructor() {
+            this.ctx = null;
+        }
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        playCoin() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(987.77, this.ctx.currentTime); // B5
+            osc.frequency.setValueAtTime(1318.51, this.ctx.currentTime + 0.08); // E6
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.25);
+        }
+        playStar() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+            osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.06); // E5
+            osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.12); // G5
+            osc.frequency.setValueAtTime(1046.50, this.ctx.currentTime + 0.18); // C6
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.35);
+        }
+        playJump() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.3);
+        }
+        playCrash() {
+            if (!this.ctx) return;
+            const bufferSize = this.ctx.sampleRate * 0.5;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+            filter.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start();
+            noise.stop(this.ctx.currentTime + 0.5);
+        }
+        playWhistle() {
+            if (!this.ctx) return;
+            const osc1 = this.ctx.createOscillator();
+            const osc2 = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc1.type = 'sawtooth';
+            osc2.type = 'sawtooth';
+            osc1.frequency.setValueAtTime(600, this.ctx.currentTime);
+            osc2.frequency.setValueAtTime(750, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc1.start();
+            osc2.start();
+            osc1.stop(this.ctx.currentTime + 0.4);
+            osc2.stop(this.ctx.currentTime + 0.4);
+        }
+    }
+
+    const sound = new SoundEffects();
+
+    // --- Game Engine Variables ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gameState = 'START'; // START, PLAYING, GAMEOVER
+    let score = 0;
+    let distance = 0;
+    let baseSpeed = 18; // Base forward travel speed
+    let currentSpeed = baseSpeed;
+    let timeElapsed = 0;
+
+    // Track system (3 parallel tracks)
+    // Tracks are indexed 0, 1, 2 representing Left, Center, Right
+    const TRACK_X = [-1.0, 0.0, 1.0]; // normalized X positions
+
+    // Train State
+    const train = {
+        frontTrack: 1, // Target track 0, 1, 2
+        rearTrack: 1,
+        frontX: 0.0,   // Interpolated visual X positions
+        rearX: 0.0,
+        zFront: 0.28,  // Distance along camera Z axis (closer to camera)
+        zRear: 0.08,   // Distance along camera Z axis (further back)
+        y: 0,          // Height off ground (jumping)
+        vy: 0,         // Vertical velocity
+        isGrounded: true,
+        tiltAngle: 0,  // Rotational tilt in radians
+        length: 0.20   // Distance between front and rear
+    };
+
+    // Camera & Projection Constants
+    let width = 0, height = 0;
+    const fov = 300;
+    let cameraY = -120;
+    let cameraZ = -0.15;
+    let horizonY = 0;
+
+    // Game Entities
+    let obstacles = [];
+    let collectibles = [];
+    let scenery = [];
+    let particles = [];
+
+    // Timers & Spawning
+    let spawnTimer = 0;
+    let rampTimer = 0;
+
+    // UI Elements
+    const scoreVal = document.getElementById('scoreVal');
+    const speedVal = document.getElementById('speedVal');
+    const distVal = document.getElementById('distVal');
+    const frontBadge = document.getElementById('frontBadge');
+    const rearBadge = document.getElementById('rearBadge');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScore = document.getElementById('finalScore');
+    const finalDist = document.getElementById('finalDist');
+
+    // Resize canvas dynamically
+    function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        width = canvas.width;
+        height = canvas.height;
+        horizonY = height * 0.35;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Perspective Projection Helper
+    function project(worldX, worldY, worldZ) {
+        // worldZ is distance from camera (0 to 1+)
+        const scale = fov / (fov + worldZ * 800);
+        const x = width / 2 + worldX * (width * 0.28) * scale;
+        const y = horizonY + (height * 0.65 - worldY) * scale;
+        return { x, y, scale };
+    }
+
+    // Input Handling
+    function moveFront(dir) {
+        if (gameState !== 'PLAYING') return;
+        train.frontTrack = Math.max(0, Math.min(2, train.frontTrack + dir));
+        updateTrackBadges();
+    }
+
+    function moveRear(dir) {
+        if (gameState !== 'PLAYING') return;
+        train.rearTrack = Math.max(0, Math.min(2, train.rearTrack + dir));
+        updateTrackBadges();
+    }
+
+    function updateTrackBadges() {
+        frontBadge.innerText = train.frontTrack + 1;
+        rearBadge.innerText = train.rearTrack + 1;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (gameState !== 'PLAYING') return;
+        switch(e.key) {
+            case 'ArrowLeft': moveFront(-1); break;
+            case 'ArrowRight': moveFront(1); break;
+            case 'a': case 'A': moveRear(-1); break;
+            case 'd': case 'D': moveRear(1); break;
+        }
+    });
+
+    // Touch / Mobile Button Listeners
+    document.getElementById('btnFrontLeft').addEventListener('touchstart', (e) => { e.preventDefault(); moveFront(-1); });
+    document.getElementById('btnFrontRight').addEventListener('touchstart', (e) => { e.preventDefault(); moveFront(1); });
+    document.getElementById('btnRearLeft').addEventListener('touchstart', (e) => { e.preventDefault(); moveRear(-1); });
+    document.getElementById('btnRearRight').addEventListener('touchstart', (e) => { e.preventDefault(); moveRear(1); });
+
+    document.getElementById('btnFrontLeft').addEventListener('mousedown', () => moveFront(-1));
+    document.getElementById('btnFrontRight').addEventListener('mousedown', () => moveFront(1));
+    document.getElementById('btnRearLeft').addEventListener('mousedown', () => moveRear(-1));
+    document.getElementById('btnRearRight').addEventListener('mousedown', () => moveRear(1));
+
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('restartBtn').addEventListener('click', startGame);
+
+    // --- Entity Spawners ---
+    function spawnScenery() {
+        // Generate trees and telegraph poles on left and right
+        scenery.push({ x: -2.2 - Math.random() * 0.8, z: 1.5, type: 'tree' });
+        scenery.push({ x: 2.2 + Math.random() * 0.8, z: 1.5, type: 'tree' });
+        if (Math.random() < 0.3) {
+            scenery.push({ x: -1.7, z: 1.5, type: 'pole' });
+            scenery.push({ x: 1.7, z: 1.5, type: 'pole' });
+        }
+    }
+
+    function spawnObstacleOrCollectible() {
+        const rand = Math.random();
+        
+        // Pick location type: On Track (0,1,2), Between Tracks (0.5, 1.5), or Ramp
+        if (rand < 0.45) {
+            // Track Obstacle
+            const track = Math.floor(Math.random() * 3);
+            const types = ['rock', 'train', 'sign'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            obstacles.push({
+                track: track,
+                x: TRACK_X[track],
+                z: 1.6,
+                type: type,
+                speedOffset: type === 'train' ? 0.3 : 0 // Oncoming train moves faster towards player
+            });
+        } else if (rand < 0.80) {
+            // Collectibles: Coins on track OR Diamonds between tracks
+            if (Math.random() < 0.5) {
+                // On-track Coins
+                const track = Math.floor(Math.random() * 3);
+                for(let i = 0; i < 3; i++) {
+                    collectibles.push({
+                        track: track,
+                        x: TRACK_X[track],
+                        y: 0,
+                        z: 1.6 + i * 0.1,
+                        type: 'coin'
+                    });
+                }
+            } else {
+                // Between-track Diamonds (Requires Acrobatic Diagonal Tilt!)
+                const gapTrack = Math.random() < 0.5 ? 0.5 : 1.5; // Gap 0-1 or Gap 1-2
+                const realX = TRACK_X[Math.floor(gapTrack)] + 0.5 * (TRACK_X[1] - TRACK_X[0]);
+                for(let i = 0; i < 3; i++) {
+                    collectibles.push({
+                        track: gapTrack,
+                        x: realX,
+                        y: 10,
+                        z: 1.6 + i * 0.12,
+                        type: 'diamond'
+                    });
+                }
+            }
+        }
+    }
+
+    function spawnRampSequence() {
+        const track = Math.floor(Math.random() * 3);
+        // Ramp
+        obstacles.push({
+            track: track,
+            x: TRACK_X[track],
+            z: 1.6,
+            type: 'ramp'
+        });
+
+        // High Altitude Bonus Stars after the ramp
+        for(let i = 0; i < 4; i++) {
+            collectibles.push({
+                track: track,
+                x: TRACK_X[track],
+                y: 110 + i * 15,
+                z: 1.8 + i * 0.1,
+                type: 'star'
+            });
+        }
+    }
+
+    // --- Particle System ---
+    function createParticles(x, y, z, color, count = 10) {
+        for(let i = 0; i < count; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                z: z,
+                vx: (Math.random() - 0.5) * 0.05,
+                vy: Math.random() * 8 + 2,
+                vz: (Math.random() - 0.5) * 0.02,
+                life: 1.0,
+                color: color
+            });
+        }
+    }
+
+    // --- Start / Reset Game ---
+    function startGame() {
+        sound.init();
+        sound.playWhistle();
+
+        gameState = 'PLAYING';
+        score = 0;
+        distance = 0;
+        currentSpeed = baseSpeed;
+        timeElapsed = 0;
+
+        train.frontTrack = 1;
+        train.rearTrack = 1;
+        train.frontX = TRACK_X[1];
+        train.rearX = TRACK_X[1];
+        train.y = 0;
+        train.vy = 0;
+        train.isGrounded = true;
+
+        updateTrackBadges();
+
+        obstacles = [];
+        collectibles = [];
+        scenery = [];
+        particles = [];
+
+        // Pre-populate scenery
+        for(let z = 0.2; z < 1.8; z += 0.15) {
+            scenery.push({ x: -2.2, z: z, type: 'tree' });
+            scenery.push({ x: 2.2, z: z, type: 'tree' });
+        }
+
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+    }
+
+    function triggerGameOver() {
+        sound.playCrash();
+        gameState = 'GAMEOVER';
+
+        // Derailment explosion particles
+        const midX = (train.frontX + train.rearX) / 2;
+        createParticles(midX, train.y + 20, train.zFront, '#ff0055', 40);
+        createParticles(midX, train.y + 20, train.zFront, '#ffcc00', 40);
+
+        finalScore.innerText = score;
+        finalDist.innerText = Math.floor(distance);
+        gameOverScreen.classList.remove('hidden');
+    }
+
+    // --- Main Game Loop Update ---
+    function update(dt) {
+        if (gameState !== 'PLAYING') return;
+
+        timeElapsed += dt;
+        distance += (currentSpeed * dt) * 0.5;
+
+        // Speed Progression over time
+        currentSpeed = baseSpeed + Math.min(25, distance * 0.015);
+
+        scoreVal.innerText = score;
+        speedVal.innerText = Math.floor(currentSpeed * 6);
+        distVal.innerText = Math.floor(distance);
+
+        // Interpolate train wheels position smoothly to target tracks
+        const targetFrontX = TRACK_X[train.frontTrack];
+        const targetRearX = TRACK_X[train.rearTrack];
+        train.frontX += (targetFrontX - train.frontX) * 15 * dt;
+        train.rearX += (targetRearX - train.rearX) * 15 * dt;
+
+        // Physics & Jumping
+        if (!train.isGrounded) {
+            train.y += train.vy * dt * 60;
+            train.vy -= 1.2 * dt * 60; // Gravity
+            if (train.y <= 0) {
+                train.y = 0;
+                train.vy = 0;
+                train.isGrounded = true;
+            }
+        }
+
+        // Calculate dynamic body tilt angle
+        const dx = train.frontX - train.rearX;
+        train.tiltAngle = Math.atan2(dx, train.length);
+
+        // Forward motion speed normalized for z-axis scrolling
+        const zSpeed = (currentSpeed * 0.04) * dt;
+
+        // Update Scenery
+        for(let i = scenery.length - 1; i >= 0; i--) {
+            scenery[i].z -= zSpeed;
+            if (scenery[i].z < 0) scenery.splice(i, 1);
+        }
+
+        // Spawn Scenery periodically
+        if (Math.random() < 0.4) spawnScenery();
+
+        // Update & Spawn Obstacles
+        spawnTimer += dt;
+        if (spawnTimer > Math.max(0.6, 1.8 - distance * 0.001)) {
+            spawnTimer = 0;
+            if (Math.random() < 0.25) {
+                spawnRampSequence();
+            } else {
+                spawnObstacleOrCollectible();
+            }
+        }
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const obs = obstacles[i];
+            obs.z -= zSpeed + (obs.speedOffset || 0) * dt;
+
+            // Collision Check with Train
+            if (obs.z > train.zRear - 0.05 && obs.z < train.zFront + 0.05) {
+                // Calculate train body X position at obstacle's Z
+                const ratio = (obs.z - train.zRear) / (train.zFront - train.zRear);
+                const clampedRatio = Math.max(0, Math.min(1, ratio));
+                const trainXAtZ = train.rearX + clampedRatio * (train.frontX - train.rearX);
+
+                if (obs.type === 'ramp') {
+                    // Check if wheels align with ramp track
+                    if (Math.abs(trainXAtZ - obs.x) < 0.45 && train.isGrounded) {
+                        // JUMP! Check tilt angle for acrobatics boost!
+                        const isTilted = Math.abs(train.frontTrack - train.rearTrack) > 0;
+                        const jumpPower = isTilted ? 32 : 22; // High altitude bonus jump when diagonal
+                        train.vy = jumpPower;
+                        train.isGrounded = false;
+                        sound.playJump();
+                        createParticles(trainXAtZ, 0, obs.z, '#00f0ff', 15);
+                    }
+                } else {
+                    // Dangerous Obstacles
+                    if (train.y < 35) { // Can jump over low rocks/signs if high enough
+                        if (Math.abs(trainXAtZ - obs.x) < 0.4) {
+                            triggerGameOver();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (obs.z < 0) obstacles.splice(i, 1);
+        }
+
+        // Update & Check Collectibles
+        for (let i = collectibles.length - 1; i >= 0; i--) {
+            const item = collectibles[i];
+            item.z -= zSpeed;
+
+            if (item.z > train.zRear - 0.05 && item.z < train.zFront + 0.05) {
+                const ratio = (item.z - train.zRear) / (train.zFront - train.zRear);
+                const clampedRatio = Math.max(0, Math.min(1, ratio));
+                const trainXAtZ = train.rearX + clampedRatio * (train.frontX - train.rearX);
+
+                // Horizontal and Vertical distance check
+                const dx = Math.abs(trainXAtZ - item.x);
+                const dy = Math.abs(train.y - item.y);
+
+                if (dx < 0.35 && dy < 45) {
+                    // Collected!
+                    if (item.type === 'coin') {
+                        score += 100;
+                        sound.playCoin();
+                    } else if (item.type === 'diamond') {
+                        score += 300; // Gap collection bonus
+                        sound.playCoin();
+                    } else if (item.type === 'star') {
+                        score += 500; // Ramp jump bonus
+                        sound.playStar();
+                    }
+                    createParticles(item.x, item.y, item.z, item.type === 'star' ? '#ffea00' : '#00f0ff', 8);
+                    collectibles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            if (item.z < 0) collectibles.splice(i, 1);
+        }
+
+        // Update Particles
+        for(let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.z -= zSpeed;
+            p.life -= dt * 2;
+            if (p.life <= 0 || p.z < 0) particles.splice(i, 1);
+        }
+    }
+
+    // --- Rendering Engine ---
+    function render() {
+        ctx.clearRect(0, 0, width, height);
+
+        // 1. Sky Gradient & Horizon Scenery
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGradient.addColorStop(0, '#0a1128');
+        skyGradient.addColorStop(0.7, '#1c3144');
+        skyGradient.addColorStop(1, '#0077b6');
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, width, horizonY);
+
+        // Sun / Horizon Glow
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(width / 2, horizonY, 80, 0, Math.PI, true);
+        ctx.fillStyle = 'rgba(255, 200, 80, 0.25)';
+        ctx.fill();
+        ctx.restore();
+
+        // Distant Mountain Silhouette
+        ctx.fillStyle = '#0f2537';
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        for (let x = 0; x <= width; x += 60) {
+            const h = Math.sin(x * 0.01) * 20 + Math.cos(x * 0.02) * 15;
+            ctx.lineTo(x, horizonY - 15 - h);
+        }
+        ctx.lineTo(width, horizonY);
+        ctx.fill();
+
+        // 2. Grassland Environment Background
+        const groundGradient = ctx.createLinearGradient(0, horizonY, 0, height);
+        groundGradient.addColorStop(0, '#2b9348');
+        groundGradient.addColorStop(0.3, '#55a630');
+        groundGradient.addColorStop(1, '#10451d');
+        ctx.fillStyle = groundGradient;
+        ctx.fillRect(0, horizonY, width, height - horizonY);
+
+        // 3. Render Parallel 3 Railway Tracks
+        for (let t = 0; t < 3; t++) {
+            const trackX = TRACK_X[t];
+            const pNearLeft = project(trackX - 0.22, 0, 0.02);
+            const pNearRight = project(trackX + 0.22, 0, 0.02);
+            const pFarLeft = project(trackX - 0.22, 0, 1.8);
+            const pFarRight = project(trackX + 0.22, 0, 1.8);
+
+            // Ballast / Track Bed
+            ctx.fillStyle = '#3a3a3a';
+            ctx.beginPath();
+            ctx.moveTo(pFarLeft.x, pFarLeft.y);
+            ctx.lineTo(pFarRight.x, pFarRight.y);
+            ctx.lineTo(pNearRight.x, pNearRight.y);
+            ctx.lineTo(pNearLeft.x, pNearLeft.y);
+            ctx.fill();
+
+            // Track Wooden Ties (Sleepers)
+            ctx.strokeStyle = '#22150a';
+            ctx.lineWidth = 3;
+            for (let z = 0.05; z < 1.8; z += 0.05) {
+                // Modulo movement to give speed scroll illusion
+                const scrollZ = (z - (distance * 0.005) % 0.05);
+                if (scrollZ <= 0) continue;
+                const p1 = project(trackX - 0.2, 0, scrollZ);
+                const p2 = project(trackX + 0.2, 0, scrollZ);
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            }
+
+            // Steel Rails
+            const railNearL = project(trackX - 0.15, 0, 0.02);
+            const railNearR = project(trackX + 0.15, 0, 0.02);
+            const railFarL = project(trackX - 0.15, 0, 1.8);
+            const railFarR = project(trackX + 0.15, 0, 1.8);
+
+            ctx.strokeStyle = '#d8f3dc';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(railFarL.x, railFarL.y); ctx.lineTo(railNearL.x, railNearL.y);
+            ctx.moveTo(railFarR.x, railFarR.y); ctx.lineTo(railNearR.x, railNearR.y);
+            ctx.stroke();
+        }
+
+        // Render Gap Visual Guides (Highlighting diagonal diamond collection zones)
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+        ctx.setLineDash([8, 8]);
+        for (let gapX of [-0.5, 0.5]) {
+            const p1 = project(gapX, 0, 0.02);
+            const p2 = project(gapX, 0, 1.8);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // Combine all Entities into depth sorted list
+        let renderables = [];
+
+        // Scenery Objects
+        scenery.forEach(s => {
+            renderables.push({ z: s.z, type: 'scenery', obj: s });
+        });
+
+        // Obstacles
+        obstacles.forEach(o => {
+            renderables.push({ z: o.z, type: 'obstacle', obj: o });
+        });
+
+        // Collectibles
+        collectibles.forEach(c => {
+            renderables.push({ z: c.z, type: 'collectible', obj: c });
+        });
+
+        // Particles
+        particles.forEach(p => {
+            renderables.push({ z: p.z, type: 'particle', obj: p });
+        });
+
+        // Sort entities back to front (Far to Near)
+        renderables.sort((a, b) => b.z - a.z);
+
+        // Render Train at its Z position during depth pass
+        let trainRendered = false;
+
+        // 4. Drawing Renderables Pass
+        renderables.forEach(item => {
+            // Render train in depth order
+            if (!trainRendered && item.z < train.zFront) {
+                renderTrain();
+                trainRendered = true;
+            }
+
+            const z = item.z;
+
+            if (item.type === 'scenery') {
+                const s = item.obj;
+                const p = project(s.x, 0, z);
+                if (s.type === 'tree') {
+                    // Tree Trunk
+                    ctx.fillStyle = '#5c3d2e';
+                    ctx.fillRect(p.x - 4 * p.scale, p.y - 20 * p.scale, 8 * p.scale, 20 * p.scale);
+                    // Canopy
+                    ctx.fillStyle = '#2d6a4f';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y - 30 * p.scale, 22 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (s.type === 'pole') {
+                    ctx.strokeStyle = '#495057';
+                    ctx.lineWidth = 3 * p.scale;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x, p.y - 50 * p.scale);
+                    ctx.moveTo(p.x - 12 * p.scale, p.y - 40 * p.scale);
+                    ctx.lineTo(p.x + 12 * p.scale, p.y - 40 * p.scale);
+                    ctx.stroke();
+                }
+            }
+
+            else if (item.type === 'obstacle') {
+                const o = item.obj;
+                const p = project(o.x, 0, z);
+
+                if (o.type === 'rock') {
+                    ctx.fillStyle = '#6c757d';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y - 10 * p.scale, 16 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#495057';
+                    ctx.beginPath();
+                    ctx.arc(p.x - 4 * p.scale, p.y - 12 * p.scale, 8 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (o.type === 'sign') {
+                    // "No Entry" (禁止通行) Warning Sign
+                    ctx.fillStyle = '#212529';
+                    ctx.fillRect(p.x - 2 * p.scale, p.y - 45 * p.scale, 4 * p.scale, 45 * p.scale);
+
+                    // Red Circle Sign
+                    ctx.fillStyle = '#d90429';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y - 45 * p.scale, 18 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 3 * p.scale;
+                    ctx.stroke();
+
+                    // White horizontal bar
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(p.x - 12 * p.scale, p.y - 48 * p.scale, 24 * p.scale, 6 * p.scale);
+                } else if (o.type === 'train') {
+                    // Oncoming Red Train Hazard
+                    const w = 36 * p.scale;
+                    const h = 40 * p.scale;
+                    ctx.fillStyle = '#d90429';
+                    ctx.fillRect(p.x - w/2, p.y - h, w, h);
+                    ctx.fillStyle = '#edf2f4';
+                    ctx.fillRect(p.x - w/2 + 4 * p.scale, p.y - h + 6 * p.scale, w - 8 * p.scale, 12 * p.scale);
+
+                    // Glowing Headlights
+                    ctx.fillStyle = '#ffea00';
+                    ctx.beginPath();
+                    ctx.arc(p.x - w/4, p.y - 8 * p.scale, 4 * p.scale, 0, Math.PI*2);
+                    ctx.arc(p.x + w/4, p.y - 8 * p.scale, 4 * p.scale, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (o.type === 'ramp') {
+                    // Jump Ramp
+                    const w = 42 * p.scale;
+                    const h = 18 * p.scale;
+                    ctx.fillStyle = '#ffb703';
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - w/2, p.y);
+                    ctx.lineTo(p.x + w/2, p.y);
+                    ctx.lineTo(p.x + w/2, p.y - h);
+                    ctx.lineTo(p.x - w/2, p.y - h);
+                    ctx.fill();
+                    ctx.fillStyle = '#fb8500';
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - w/2, p.y);
+                    ctx.lineTo(p.x + w/2, p.y);
+                    ctx.lineTo(p.x, p.y - h - 5 * p.scale);
+                    ctx.fill();
+                }
+            }
+
+            else if (item.type === 'collectible') {
+                const c = item.obj;
+                const p = project(c.x, c.y, z);
+
+                if (c.type === 'coin') {
+                    ctx.fillStyle = '#ffb703';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y - 8 * p.scale, 10 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2 * p.scale;
+                    ctx.stroke();
+                } else if (c.type === 'diamond') {
+                    // Between-track Acrobatic Diamond
+                    const sz = 12 * p.scale;
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y - 10 * p.scale - sz);
+                    ctx.lineTo(p.x + sz, p.y - 10 * p.scale);
+                    ctx.lineTo(p.x, p.y - 10 * p.scale + sz);
+                    ctx.lineTo(p.x - sz, p.y - 10 * p.scale);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                } else if (c.type === 'star') {
+                    // High-Altitude Ramp Bonus Star
+                    ctx.fillStyle = '#ffea00';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 14 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            else if (item.type === 'particle') {
+                const pt = item.obj;
+                const p = project(pt.x, pt.y, pt.z);
+                ctx.fillStyle = pt.color;
+                ctx.globalAlpha = Math.max(0, pt.life);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4 * p.scale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        });
+
+        if (!trainRendered) {
+            renderTrain();
+        }
+    }
+
+    // --- Special Render for Player's Acrobatic Train ---
+    function renderTrain() {
+        const pFront = project(train.frontX, train.y, train.zFront);
+        const pRear = project(train.rearX, train.y, train.zRear);
+
+        // Train Body Angle in 2D Screen Space
+        const dx = pFront.x - pRear.x;
+        const dy = pFront.y - pRear.y;
+        const screenAngle = Math.atan2(dy, dx);
+
+        // Midpoint and length
+        const midX = (pFront.x + pRear.x) / 2;
+        const midY = (pFront.y + pRear.y) / 2;
+        const bodyLength = Math.hypot(dx, dy) + 30 * pFront.scale;
+
+        ctx.save();
+        ctx.translate(midX, midY);
+        ctx.rotate(screenAngle);
+
+        // Shadow under train
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(0, 18 * pFront.scale, bodyLength / 2, 12 * pFront.scale, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 1. Train Body (Diagonal Slanted Metallic Hull)
+        const trainHeight = 32 * pFront.scale;
+        const halfL = bodyLength / 2;
+
+        const bodyGrad = ctx.createLinearGradient(0, -trainHeight, 0, 0);
+        bodyGrad.addColorStop(0, '#00f0ff');
+        bodyGrad.addColorStop(0.5, '#0077b6');
+        bodyGrad.addColorStop(1, '#03045e');
+
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.roundRect(-halfL, -trainHeight, bodyLength, trainHeight, 8 * pFront.scale);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // High Tech Glowing Roof Stripe
+        ctx.fillStyle = '#ff0055';
+        ctx.fillRect(-halfL + 4, -trainHeight, bodyLength - 8, 4 * pFront.scale);
+
+        // Windows along slanted body
+        ctx.fillStyle = '#e0fbfc';
+        const numWindows = 4;
+        const winW = (bodyLength - 30) / numWindows;
+        for (let i = 0; i < numWindows; i++) {
+            ctx.fillRect(-halfL + 15 + i * winW, -trainHeight + 8 * pFront.scale, winW - 6, 10 * pFront.scale);
+        }
+
+        ctx.restore();
+
+        // 2. Wheel Sets (Independent Front & Rear)
+        renderWheelSet(pFront.x, pFront.y, pFront.scale, '#ff0055');
+        renderWheelSet(pRear.x, pRear.y, pRear.scale, '#00e5ff');
+    }
+
+    function renderWheelSet(x, y, scale, color) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        // Axle
+        ctx.strokeStyle = '#495057';
+        ctx.lineWidth = 4 * scale;
+        ctx.beginPath();
+        ctx.moveTo(-16 * scale, -4 * scale);
+        ctx.lineTo(16 * scale, -4 * scale);
+        ctx.stroke();
+
+        // Left & Right Wheels
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(-16 * scale, -4 * scale, 6 * scale, 0, Math.PI * 2);
+        ctx.arc(16 * scale, -4 * scale, 6 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // --- Main Game Loop ---
+    let lastTime = performance.now();
+    function gameLoop(now) {
+        const dt = Math.min(0.1, (now - lastTime) / 1000); // Delta time in seconds
+        lastTime = now;
+
+        update(dt);
+        render();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Start Loop
+    requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
