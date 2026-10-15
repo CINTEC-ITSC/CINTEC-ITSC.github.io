@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acrobatic Train (アクロバティックトレイン)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Zen Maru Gothic', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #030712;
+            overflow: hidden;
+        }
+        .arcade-btn {
+            transition: all 0.08s ease;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.6), 0 10px 20px rgba(0,0,0,0.4);
+        }
+        .arcade-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 5px 10px rgba(0,0,0,0.4);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(168, 85, 247, 0.6), 0 0 30px rgba(236, 72, 153, 0.4);
+        }
+        .panel-glow {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.25), inset 0 0 15px rgba(59, 130, 246, 0.15);
+        }
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(1000%); }
+        }
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 10px;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(59,130,246,0.1), rgba(255,255,255,0));
+            pointer-events: none;
+            animation: scanline 6s linear infinite;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between items-center relative overflow-hidden">
+
+    <!-- Scanline overlay for retro arcade feel -->
+    <div class="scanline z-30"></div>
+
+    <!-- Top HUD Bar -->
+    <header class="w-full max-w-5xl z-20 flex justify-between items-center p-4 bg-slate-900/80 backdrop-blur-md border-b border-cyan-500/30 text-white shadow-lg">
+        <div class="flex items-center space-x-4">
+            <div>
+                <h1 class="text-xs tracking-widest text-cyan-400 font-bold uppercase">アクロバティックトレイン</h1>
+                <div class="text-xl md:text-2xl font-black text-white tracking-wider text-glow">ACROBATIC TRAIN</div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-6 text-right">
+            <div>
+                <div class="text-[10px] text-slate-400 font-semibold tracking-wider">SCORE</div>
+                <div id="scoreDisplay" class="text-xl md:text-2xl font-black text-yellow-400 font-mono">000000</div>
+            </div>
+            <div>
+                <div class="text-[10px] text-slate-400 font-semibold tracking-wider">DISTANCE</div>
+                <div id="distDisplay" class="text-lg md:text-xl font-black text-cyan-300 font-mono">0.0 km</div>
+            </div>
+            <div>
+                <div class="text-[10px] text-slate-400 font-semibold tracking-wider">SPEED</div>
+                <div id="speedDisplay" class="text-lg md:text-xl font-black text-emerald-400 font-mono">120 km/h</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Canvas Container -->
+    <main class="flex-1 w-full max-w-5xl relative flex justify-center items-center overflow-hidden bg-slate-950">
+        <canvas id="gameCanvas" class="w-full h-full block absolute inset-0"></canvas>
+
+        <!-- Mini Wheel Alignment HUD Overlay (Bottom Left) -->
+        <div id="alignmentHud" class="absolute bottom-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md border border-slate-700 p-3 rounded-xl shadow-xl hidden flex-col space-y-2 pointer-events-none">
+            <div class="text-[10px] tracking-wider font-bold text-cyan-400 flex justify-between">
+                <span>WHEEL ALIGNMENT</span>
+                <span id="tiltStatusBadge" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px]">STRAIGHT</span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="text-xs text-slate-300 font-semibold w-12">FRONT</div>
+                <div class="flex space-x-1" id="frontTrackIndicators">
+                    <div class="w-5 h-5 rounded border border-slate-600 bg-slate-800 flex items-center justify-center text-[10px] font-bold" data-track="0">1</div>
+                    <div class="w-5 h-5 rounded border border-slate-600 bg-slate-800 flex items-center justify-center text-[10px] font-bold" data-track="1">2</div>
+                    <div class="w-5 h-5 rounded border border-slate-600 bg-slate-800 flex items-center justify-center text-[10px] font-bold" data-track="2">3</div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="text-xs text-slate-300 font-semibold w-12">REAR</div>
+                <div class="flex space-x-1" id="rearTrackIndicators">
+                    <div class="w-5 h-5 rounded border border-slate-600 bg-slate-800 flex items-center justify-center text-[10px] font-bold" data-track="0">1</div>
+                    <div class="w-5 h-5 rounded border border-slate-600 bg-slate-800 flex items-center justify-center text-[10px] font-bold" data-track="1">2</div>
+                    <div class="w-5 h-5 rounded border border-slate-600 bg-slate-800 flex items-center justify-center text-[10px] font-bold" data-track="2">3</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen Overlay -->
+        <div id="startScreen" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+            <div class="max-w-xl w-full bg-slate-900/90 border border-cyan-500/40 rounded-3xl p-8 panel-glow flex flex-col items-center space-y-6">
+                <div class="inline-block px-4 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold tracking-widest uppercase animate-pulse">
+                    ARCADE ACTION RUNNER
+                </div>
+                <h2 class="text-3xl md:text-5xl font-black text-white tracking-wide text-glow">
+                    アクロバティックトレイン
+                </h2>
+                <p class="text-slate-300 text-sm md:text-base leading-relaxed">
+                    Control front and rear wheel sets independently across 3 parallel tracks! Tilt diagonally to collect gap diamonds, launch off ramps into hyper jumps, and avoid obstacles!
+                </p>
+
+                <!-- Controls Guide Box -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-left text-xs">
+                    <div>
+                        <div class="text-cyan-400 font-bold mb-1">FRONT WHEELS (前輪)</div>
+                        <div class="text-slate-300">Keyboard: <span class="text-yellow-300 font-mono">← / →</span> Arrow Keys</div>
+                        <div class="text-slate-300">Buttons: On-screen Left/Right</div>
+                    </div>
+                    <div>
+                        <div class="text-purple-400 font-bold mb-1">REAR WHEELS (後輪)</div>
+                        <div class="text-slate-300">Keyboard: <span class="text-yellow-300 font-mono">A / D</span> Keys</div>
+                        <div class="text-slate-300">Buttons: On-screen Left/Right</div>
+                    </div>
+                </div>
+
+                <button id="startBtn" class="arcade-btn w-full py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-black text-xl rounded-2xl tracking-wider hover:opacity-90">
+                    START GAME (スタート)
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameOverScreen" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center hidden">
+            <div class="max-w-md w-full bg-slate-900/95 border border-rose-500/50 rounded-3xl p-8 panel-glow flex flex-col items-center space-y-6">
+                <div class="inline-block px-4 py-1 rounded-full bg-rose-500/20 border border-rose-400/40 text-rose-400 text-xs font-bold tracking-widest uppercase">
+                    DERAILMENT (脱線事故)
+                </div>
+                <h2 class="text-3xl md:text-4xl font-black text-white tracking-wide text-rose-500">
+                    GAME OVER
+                </h2>
+
+                <div class="w-full bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Final Score:</span>
+                        <span id="goScore" class="text-yellow-400 font-mono font-black text-lg">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Distance Traveled:</span>
+                        <span id="goDist" class="text-cyan-300 font-mono font-black text-lg">0.0 km</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm border-t border-slate-800 pt-2">
+                        <span class="text-slate-400">High Score:</span>
+                        <span id="goHighScore" class="text-emerald-400 font-mono font-black text-lg">0</span>
+                    </div>
+                </div>
+
+                <button id="restartBtn" class="arcade-btn w-full py-4 bg-gradient-to-r from-rose-500 to-orange-600 text-white font-black text-xl rounded-2xl tracking-wider hover:opacity-90">
+                    PLAY AGAIN (もう一度)
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- On-Screen Touch / Mobile Controls Footer -->
+    <footer id="controlFooter" class="w-full max-w-5xl z-20 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <!-- Front Wheels Controls -->
+        <div class="flex items-center space-x-2 w-full md:w-auto justify-center">
+            <span class="text-xs font-bold text-cyan-400 mr-2">FRONT:</span>
+            <button id="frontLeftBtn" class="arcade-btn px-5 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl text-sm flex-1 md:flex-none">◀ LEFT</button>
+            <button id="frontRightBtn" class="arcade-btn px-5 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl text-sm flex-1 md:flex-none">RIGHT ▶</button>
+        </div>
+
+        <!-- Jump / Action Button -->
+        <div class="flex items-center justify-center">
+            <button id="hornBtn" class="arcade-btn px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:opacity-90 text-slate-950 font-black rounded-xl text-sm tracking-wider">
+                🔔 HORN / WHISTLE
+            </button>
+        </div>
+
+        <!-- Rear Wheels Controls -->
+        <div class="flex items-center space-x-2 w-full md:w-auto justify-center">
+            <span class="text-xs font-bold text-purple-400 mr-2">REAR:</span>
+            <button id="rearLeftBtn" class="arcade-btn px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl text-sm flex-1 md:flex-none">◀ [A]</button>
+            <button id="rearRightBtn" class="arcade-btn px-5 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black rounded-xl text-sm flex-1 md:flex-none">[D] ▶</button>
+        </div>
+    </footer>
+
+    <script>
+        // --- Web Audio Synthesizer for SFX ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+            coin() {
+                this.playTone(587.33, 'sine', 0.1, 0.15);
+                setTimeout(() => this.playTone(880, 'sine', 0.2, 0.15), 80);
+            }
+            jump() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                } catch(e) {}
+            }
+            horn() {
+                this.playTone(329.63, 'sawtooth', 0.4, 0.2);
+                setTimeout(() => this.playTone(392.00, 'sawtooth', 0.4, 0.2), 150);
+            }
+            crash() {
+                if (!this.ctx) return;
+                try {
+                    const bufferSize = this.ctx.sampleRate * 0.5;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    filter.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    noise.start();
+                } catch(e) {}
+            }
+        }
+
+        const sfx = new SoundFX();
+
+        // --- Game Setup & Canvas ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = rect.width;
+            height = rect.height;
+            canvas.width = width * window.devicePixelRatio;
+            canvas.height = height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Game States & Variables ---
+        let gameState = 'START'; // START, PLAYING, GAMEOVER
+        let score = 0;
+        let distance = 0;
+        let speed = 120; // km/h
+        let highScore = localStorage.getItem('acro_train_highscore') || 0;
+
+        // Train Wheel Tracks (0 = Left, 1 = Center, 2 = Right)
+        let frontTrack = 1;
+        let rearTrack = 1;
+
+        // Jump Physics
+        let trainY = 0; // Height above ground
+        let trainVY = 0;
+        let isJumping = false;
+        let jumpTimer = 0;
+
+        // Entities spawning
+        let obstacles = [];
+        let collectibles = [];
+        let scenery = [];
+        let particles = [];
+        let spawnTimer = 0;
+        let sceneryTimer = 0;
+        let screenShake = 0;
+
+        // --- Pseudo-3D Perspective Math ---
+        const horizonY = () => height * 0.38;
+        const trackWidthAtZ = (z) => {
+            // z ranges from 0 (camera/near) to 1 (horizon/far)
+            let nearWidth = width * 0.55;
+            let farWidth = width * 0.08;
+            return nearWidth * (1 - z) + farWidth * z;
+        };
+
+        const getTrackX = (trackIdx, z) => {
+            let cx = width * 0.5;
+            let tW = trackWidthAtZ(z);
+            let leftEdge = cx - tW * 0.5;
+            let trackSpacing = tW / 2;
+            return leftEdge + trackIdx * trackSpacing;
+        };
+
+        const getTrackY = (z) => {
+            let hy = horizonY();
+            let by = height;
+            // non-linear depth curve for immersive perspective
+            let proj = Math.pow(1 - z, 1.8);
+            return by - (by - hy) * proj;
+        };
+
+        // --- Initialize Scenery & Objects ---
+        function initGame() {
+            score = 0;
+            distance = 0;
+            speed = 120;
+            frontTrack = 1;
+            rearTrack = 1;
+            trainY = 0;
+            trainVY = 0;
+            isJumping = false;
+            obstacles = [];
+            collectibles = [];
+            particles = [];
+            spawnTimer = 0;
+            sceneryTimer = 0;
+            screenShake = 0;
+
+            // Generate initial scenery along sides
+            scenery = [];
+            for (let i = 0; i < 20; i++) {
+                scenery.push({
+                    z: i / 20,
+                    side: i % 2 === 0 ? -1 : 1,
+                    type: Math.floor(Math.random() * 3), // 0: tree, 1: pole, 2: rock
+                    distFromTrack: 1.2 + Math.random() * 0.8
+                });
+            }
+        }
+
+        // --- Controls Handling ---
+        function shiftFront(dir) {
+            if (gameState !== 'PLAYING') return;
+            frontTrack = Math.max(0, Math.min(2, frontTrack + dir));
+            updateAlignmentHud();
+            sfx.init();
+            sfx.playTone(400 + frontTrack * 150, 'sine', 0.08, 0.05);
+        }
+
+        fn_shiftRear = (dir) => {
+            if (gameState !== 'PLAYING') return;
+            rearTrack = Math.max(0, Math.min(2, rearTrack + dir));
+            updateAlignmentHud();
+            sfx.init();
+            sfx.playTone(250 + rearTrack * 150, 'sine', 0.08, 0.05);
+        }
+
+        function updateAlignmentHud() {
+            const badge = document.getElementById('tiltStatusBadge');
+            const frontIndicators = document.querySelectorAll('#frontTrackIndicators div');
+            const rearIndicators = document.querySelectorAll('#rearTrackIndicators div');
+
+            frontIndicators.forEach((el, idx) => {
+                if (idx === frontTrack) {
+                    el.className = "w-5 h-5 rounded border border-cyan-400 bg-cyan-500 text-slate-950 flex items-center justify-center text-[10px] font-bold shadow-md shadow-cyan-500/50";
+                } else {
+                    el.className = "w-5 h-5 rounded border border-slate-700 bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold";
+                }
+            });
+
+            rearIndicators.forEach((el, idx) => {
+                if (idx === rearTrack) {
+                    el.className = "w-5 h-5 rounded border border-purple-400 bg-purple-500 text-white flex items-center justify-center text-[10px] font-bold shadow-md shadow-purple-500/50";
+                } else {
+                    el.className = "w-5 h-5 rounded border border-slate-700 bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold";
+                }
+            });
+
+            if (frontTrack !== rearTrack) {
+                badge.textContent = "SLANTED! (傾斜)";
+                badge.className = "px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-300 text-[9px] font-bold animate-pulse";
+            } else {
+                badge.textContent = "STRAIGHT (直進)";
+                badge.className = "px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px]";
+            }
+        }
+
+        // Keyboard listeners
+        window.addEventListener('keydown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            sfx.init();
+            if (e.key === 'ArrowLeft') shiftFront(-1);
+            if (e.key === 'ArrowRight') shiftFront(1);
+            if (e.key === 'a' || e.key === 'A') fn_shiftRear(-1);
+            if (e.key === 'd' || e.key === 'D') fn_shiftRear(1);
+            if (e.key === ' ') {
+                sfx.horn();
+                createParticles(width * 0.5, height * 0.7, '#facc15', 10);
+            }
+        });
+
+        // Button listeners
+        document.getElementById('frontLeftBtn').addEventListener('click', () => shiftFront(-1));
+        document.getElementById('frontRightBtn').addEventListener('click', () => shiftFront(1));
+        document.getElementById('rearLeftBtn').addEventListener('click', () => fn_shiftRear(-1));
+        document.getElementById('rearRightBtn').addEventListener('click', () => fn_shiftRear(1));
+        document.getElementById('hornBtn').addEventListener('click', () => {
+            sfx.init();
+            sfx.horn();
+        });
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            sfx.init();
+            initGame();
+            gameState = 'PLAYING';
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('alignmentHud').classList.remove('hidden');
+            document.getElementById('alignmentHud').classList.add('flex');
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            sfx.init();
+            initGame();
+            gameState = 'PLAYING';
+            document.getElementById('gameOverScreen').classList.add('hidden');
+        });
+
+        // --- Particle System ---
+        function createParticles(x, y, color, count = 5) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6 - 2,
+                    radius: Math.random() * 4 + 2,
+                    color: color,
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.01
+                });
+            }
+        }
+
+        function updateAndDrawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // --- Spawning Game Entities ---
+        function spawnEntities(dt) {
+            spawnTimer += speed * dt;
+            if (spawnTimer > 180) {
+                spawnTimer = 0;
+                let typeRand = Math.random();
+
+                if (typeRand < 0.35) {
+                    // Spawn Obstacle (Rock or Oncoming Train or No Entry Sign)
+                    let track = Math.floor(Math.random() * 3);
+                    let obsType = Math.random() < 0.4 ? 'rock' : (Math.random() < 0.7 ? 'sign' : 'train');
+                    obstacles.push({
+                        z: 1.0,
+                        track: track,
+                        type: obsType,
+                        speedFactor: obsType === 'train' ? 1.8 : 1.0
+                    });
+                } else if (typeRand < 0.75) {
+                    // Spawn Collectible (Track coin or Gap diamond or Ramp)
+                    let subRand = Math.random();
+                    if (subRand < 0.5) {
+                        // Track Coin
+                        let track = Math.floor(Math.random() * 3);
+                        collectibles.push({ z: 1.0, track: track, type: 'coin', collected: false });
+                    } else if (subRand < 0.8) {
+                        // Gap Diamond (between tracks 0-1 or 1-2)
+                        let gap = Math.random() < 0.5 ? 0 : 1; // gap between 0&1 or 1&2
+                        collectibles.push({ z: 1.0, gap: gap, type: 'diamond', collected: false });
+                    } else {
+                        // Ramp + High Star
+                        let track = Math.floor(Math.random() * 3);
+                        collectibles.push({ z: 1.0, track: track, type: 'ramp', collected: false });
+                        collectibles.push({ z: 1.0, track: track, type: 'highstar', collected: false, height: 60 });
+                    }
+                }
+            }
+
+            // Scenery spawning
+            sceneryTimer += speed * dt;
+            if (sceneryTimer > 80) {
+                sceneryTimer = 0;
+                scenery.push({
+                    z: 1.0,
+                    side: Math.random() < 0.5 ? -1 : 1,
+                    type: Math.floor(Math.random() * 3),
+                    distFromTrack: 1.3 + Math.random() * 1.0
+                });
+            }
+        }
+
+        // --- Main Game Loop ---
+        let lastTime = performance.now();
+        function gameLoop(now) {
+            let dt = (now - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.1;
+            lastTime = now;
+
+            // Clear screen
+            ctx.clearRect(0, 0, width, height);
+
+            if (gameState === 'PLAYING') {
+                // Update speed & distance
+                speed = Math.min(320, 120 + distance * 0.08);
+                distance += (speed / 3600) * (dt * 60); // km increment
+
+                score += Math.floor(speed * dt * 0.5);
+
+                // Spawn entities
+                spawnEntities(dt);
+
+                // Update jump physics
+                if (isJumping) {
+                    trainVY -= 18 * dt; // gravity
+                    trainY += trainVY;
+                    if (trainY <= 0) {
+                        trainY = 0;
+                        isJumping = false;
+                        trainVY = 0;
+                        createParticles(width * 0.5, height * 0.75, '#3b82f6', 8);
+                    }
+                }
+            }
+
+            // --- Render Environment (Sky, Grassland, Horizon) ---
+            let hy = horizonY();
+
+            // Sky gradient
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, hy);
+            skyGrad.addColorStop(0, '#0f172a');
+            skyGrad.addColorStop(1, '#1e3a8a');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, width, hy);
+
+            // Sun / Moon glow
+            ctx.save();
+            ctx.shadowBlur = 40;
+            ctx.shadowColor = '#38bdf8';
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath();
+            ctx.arc(width * 0.75, hy - 40, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Rolling Hills in background
+            ctx.fillStyle = '#065f46';
+            ctx.beginPath();
+            ctx.moveTo(0, hy);
+            ctx.lineTo(0, hy - 20);
+            ctx.quadraticCurveTo(width * 0.3, hy - 60, width * 0.6, hy - 20);
+            ctx.quadraticCurveTo(width * 0.8, hy - 40, width, hy - 15);
+            ctx.lineTo(width, hy);
+            ctx.fill();
+
+            // Grassland plane
+            let groundGrad = ctx.createLinearGradient(0, hy, 0, height);
+            groundGrad.addColorStop(0, '#047857');
+            groundGrad.addColorStop(1, '#064e3b');
+            ctx.fillStyle = groundGrad;
+            ctx.fillRect(0, hy, width, height - hy);
+
+            // Horizon neon grid line
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, hy);
+            ctx.lineTo(width, hy);
+            ctx.stroke();
+
+            // --- Render Scenery (Trees, Poles) ---
+            for (let i = scenery.length - 1; i >= 0; i--) {
+                let sc = scenery[i];
+                if (gameState === 'PLAYING') {
+                    sc.z -= (speed * 0.00035) * (dt * 60);
+                }
+                if (sc.z <= 0) {
+                    scenery.splice(i, 1);
+                    continue;
+                }
+
+                let tW = trackWidthAtZ(sc.z);
+                let cx = width * 0.5;
+                let scX = cx + sc.side * (tW * 0.5 * sc.distFromTrack);
+                let scY = getTrackY(sc.z);
+                let scale = 1 - sc.z;
+
+                ctx.save();
+                ctx.translate(scX, scY);
+                ctx.scale(scale, scale);
+
+                if (sc.type === 0) {
+                    // Tree / Bush
+                    ctx.fillStyle = '#022c22';
+                    ctx.beginPath();
+                    ctx.arc(0, -20, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#059669';
+                    ctx.beginPath();
+                    ctx.arc(0, -25, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (sc.type === 1) {
+                    // Telegraph Pole
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(-3, -60, 6, 60);
+                    ctx.fillRect(-15, -55, 30, 4);
+                } else {
+                    // Rock cluster
+                    ctx.fillStyle = '#475569';
+                    ctx.beginPath();
+                    ctx.arc(-10, -10, 15, 0, Math.PI * 2);
+                    ctx.arc(10, -5, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // --- Render 3 Parallel Tracks ---
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 3;
+            for (let t = 0; t < 3; t++) {
+                ctx.beginPath();
+                // Draw track line from horizon (z=1) to near (z=0)
+                let steps = 20;
+                for (let s = 0; s <= steps; s++) {
+                    let z = s / steps;
+                    let x = getTrackX(t, z);
+                    let y = getTrackY(z);
+                    if (s === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Track ties (wooden sleepers)
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2;
+                for (let zVal = 0.05; zVal < 0.95; zVal += 0.08) {
+                    let tx = getTrackX(t, zVal);
+                    let ty = getTrackY(zVal);
+                    let prevTx = getTrackX(t, zVal + 0.02);
+                    let prevTy = getTrackY(zVal + 0.02);
+                    let angle = Math.atan2(prevTy - ty, prevTx - tx);
+                    
+                    ctx.save();
+                    ctx.translate(tx, ty);
+                    ctx.rotate(angle + Math.PI / 2);
+                    let tScale = 1 - zVal;
+                    ctx.fillRect(-12 * tScale, -2, 24 * tScale, 4);
+                    ctx.restore();
+                }
+            }
+
+            // --- Render Obstacles & Collectibles ---
+            // Process Collectibles
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                let item = collectibles[i];
+                if (gameState === 'PLAYING') {
+                    item.z -= (speed * 0.0004) * (dt * 60);
+                }
+                if (item.z <= 0) {
+                    collectibles.splice(i, 1);
+                    continue;
+                }
+
+                let scale = 1 - item.z;
+                let itemX, itemY;
+
+                if (item.type === 'diamond') {
+                    // Between tracks (gap 0 or 1)
+                    let x1 = getTrackX(item.gap, item.z);
+                    let x2 = getTrackX(item.gap + 1, item.z);
+                    itemX = (x1 + x2) * 0.5;
+                    itemY = getTrackY(item.z);
+                } else if (item.type === 'highstar') {
+                    itemX = getTrackX(item.track, item.z);
+                    itemY = getTrackY(item.z) - (item.height || 50);
+                } else {
+                    itemX = getTrackX(item.track, item.z);
+                    itemY = getTrackY(item.z);
+                }
+
+                // Collision & Collection check (approx train position at z ~ 0.12)
+                if (gameState === 'PLAYING' && !item.collected && item.z > 0.06 && item.z < 0.18) {
+                    if (item.type === 'coin') {
+                        if (frontTrack === item.track || rearTrack === item.track) {
+                            item.collected = true;
+                            score += 500;
+                            sfx.coin();
+                            createParticles(itemX, itemY, '#facc15', 8);
+                        }
+                    } else if (item.type === 'diamond') {
+                        // Collected if train is tilted diagonally bridging this gap
+                        let minT = Math.min(frontTrack, rearTrack);
+                        let maxT = Math.max(frontTrack, rearTrack);
+                        if (minT === item.gap && maxT === item.gap + 1) {
+                            item.collected = true;
+                            score += 1500;
+                            sfx.coin();
+                            createParticles(itemX, itemY, '#a855f7', 12);
+                        }
+                    } else if (item.type === 'ramp') {
+                        if (frontTrack === item.track && rearTrack === item.track && trainY < 10) {
+                            // Launch Jump!
+                            isJumping = true;
+                            let tiltBonus = frontTrack !== rearTrack ? 1.5 : 1.0;
+                            trainVY = (12 + (speed / 35)) * tiltBonus;
+                            sfx.jump();
+                            createParticles(itemX, itemY, '#38bdf8', 15);
+                        }
+                    } else if (item.type === 'highstar') {
+                        if (isJumping && trainY > 30 && (frontTrack === item.track || rearTrack === item.track)) {
+                            item.collected = true;
+                            score += 3000;
+                            sfx.coin();
+                            createParticles(itemX, itemY, '#ec4899', 15);
+                        }
+                    }
+                }
+
+                if (item.collected) continue;
+
+                // Draw Item graphics
+                ctx.save();
+                ctx.translate(itemX, itemY);
+                ctx.scale(scale, scale);
+
+                if (item.type === 'coin') {
+                    ctx.fillStyle = '#facc15';
+                    ctx.strokeStyle = '#ca8a04';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, -10, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#ca8a04';
+                    ctx.font = 'bold 14px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('¥', 0, -5);
+                } else if (item.type === 'diamond') {
+                    ctx.fillStyle = '#c084fc';
+                    ctx.strokeStyle = '#9333ea';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -22);
+                    ctx.lineTo(14, -8);
+                    ctx.lineTo(0, 6);
+                    ctx.lineTo(-14, -8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (item.type === 'ramp') {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.moveTo(-18, 0);
+                    ctx.lineTo(18, 0);
+                    ctx.lineTo(18, -12);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (item.type === 'highstar') {
+                    ctx.fillStyle = '#ec4899';
+                    ctx.beginPath();
+                    for (let s = 0; s < 5; s++) {
+                        let angle = (s * 4 * Math.PI) / 5 - Math.PI / 2;
+                        let r = s % 2 === 0 ? 14 : 7;
+                        let sx = Math.cos(angle) * r;
+                        let sy = Math.sin(angle) * r;
+                        if (s === 0) ctx.moveTo(sx, sy);
+                        else ctx.lineTo(sx, sy);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // Process Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                if (gameState === 'PLAYING') {
+                    obs.z -= (speed * 0.0004 * obs.speedFactor) * (dt * 60);
+                }
+                if (obs.z <= 0) {
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+
+                let scale = 1 - obs.z;
+                let obsX = getTrackX(obs.track, obs.z);
+                let obsY = getTrackY(obs.z);
+
+                // Collision Check (Train at z ~ 0.12)
+                if (gameState === 'PLAYING' && obs.z > 0.08 && obs.z < 0.16 && trainY < 20) {
+                    // Check if front or rear wheels match obstacle track
+                    if (frontTrack === obs.track || rearTrack === obs.track) {
+                        // Derailment! Game Over
+                        gameState = 'GAMEOVER';
+                        sfx.crash();
+                        createParticles(obsX, obsY, '#ef4444', 30);
+                        screenShake = 20;
+
+                        // Update High Score
+                        if (score > highScore) {
+                            highScore = score;
+                            localStorage.setItem('acro_train_highscore', highScore);
+                        }
+
+                        // Show Game Over UI
+                        document.getElementById('goScore').textContent = score;
+                        document.getElementById('goDist').textContent = distance.toFixed(1) + ' km';
+                        document.getElementById('goHighScore').textContent = highScore;
+                        document.getElementById('gameOverScreen').classList.remove('hidden');
+                        document.getElementById('alignmentHud').classList.add('hidden');
+                    }
+                }
+
+                // Draw Obstacle
+                ctx.save();
+                ctx.translate(obsX, obsY);
+                ctx.scale(scale, scale);
+
+                if (obs.type === 'rock') {
+                    ctx.fillStyle = '#64748b';
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, -15, 20, Math.PI, 0, false);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (obs.type === 'sign') {
+                    // No Entry Warning Sign (禁止通行)
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(-16, -35, 32, 24);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(-12, -26, 24, 6);
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(-2, -11, 4, 15);
+                } else if (obs.type === 'train') {
+                    // Oncoming Train
+                    ctx.fillStyle = '#e11d48';
+                    ctx.fillRect(-22, -30, 44, 30);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillRect(-16, -24, 12, 10);
+                    ctx.fillRect(4, -24, 12, 10);
+                }
+                ctx.restore();
+            }
+
+            // --- Render Train (Pseudo-3D Perspective with Slanted Body) ---
+            let trainZ = 0.12;
+            let frontX = getTrackX(frontTrack, trainZ + 0.05);
+            let frontY = getTrackY(trainZ + 0.05) - trainY;
+            let rearX = getTrackX(rearTrack, trainZ - 0.05);
+            let rearY = getTrackY(trainZ - 0.05) - trainY;
+
+            ctx.save();
+            // Screen shake effect
+            if (screenShake > 0) {
+                let shx = (Math.random() - 0.5) * screenShake;
+                let shy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(shx, shy);
+                screenShake *= 0.9;
+                if (screenShake < 0.5) screenShake = 0;
+            }
+
+            // Train Body (Connecting front and rear bogies)
+            let trainAngle = Math.atan2(frontY - rearY, frontX - rearX);
+            let midX = (frontX + rearX) * 0.5;
+            let midY = (frontY + rearY) * 0.5;
+
+            ctx.translate(midX, midY);
+            ctx.rotate(trainAngle);
+
+            let bodyWidth = 110;
+            let bodyHeight = 50;
+
+            // Train Shadow on ground
+            ctx.save();
+            ctx.translate(0, trainY + 10);
+            ctx.scale(1, 0.3);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.arc(0, 0, bodyWidth * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Train Exterior Gradient
+            let trainGrad = ctx.createLinearGradient(0, -bodyHeight, 0, 0);
+            trainGrad.addColorStop(0, '#38bdf8');
+            trainGrad.addColorStop(0.5, '#2563eb');
+            trainGrad.addColorStop(1, '#1e40af');
+
+            ctx.fillStyle = trainGrad;
+            ctx.strokeStyle = '#93c5fd';
+            ctx.lineWidth = 3;
+
+            // Rounded futuristic train car body
+            ctx.beginPath();
+            ctx.roundRect(-bodyWidth * 0.5, -bodyHeight, bodyWidth, bodyHeight, [16, 24, 8, 8]);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cockpit Windshield & Windows
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(bodyWidth * 0.2, -bodyHeight + 8, 22, 20);
+            ctx.fillStyle = '#facc15'; // headlight
+            ctx.beginPath();
+            ctx.arc(bodyWidth * 0.5 - 2, -bodyHeight + 18, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Passenger Windows
+            ctx.fillStyle = '#38bdf8';
+            for (let w = -35; w < 10; w += 22) {
+                ctx.fillRect(w, -bodyHeight + 10, 14, 16);
+            }
+
+            // Wheels & Bogies
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-bodyWidth * 0.35, 0, 20, 10);
+            ctx.fillRect(bodyWidth * 0.15, 0, 20, 10);
+
+            ctx.restore();
+
+            // HUD Updates
+            document.getElementById('scoreDisplay').textContent = String(score).padStart(6, '0');
+            document.getElementById('distDisplay').textContent = distance.toFixed(1) + ' km';
+            document.getElementById('speedDisplay').textContent = Math.floor(speed) + ' km/h';
+
+            // Update particles
+            updateAndDrawParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start initial frame
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
