@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>噩夢競技場 - 萬聖節驚悚躲避遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            background: #090514;
+        }
+        .font-creepster {
+            font-family: 'Creepster', cursive;
+        }
+        .spooky-border {
+            box-shadow: 0 0 35px rgba(234, 88, 12, 0.4), inset 0 0 20px rgba(147, 51, 234, 0.3);
+            border: 4px solid #ea580c;
+        }
+        .spooky-text-shadow {
+            text-shadow: 0 0 15px #ea580c, 0 0 30px #9333ea;
+        }
+        .glow-button {
+            box-shadow: 0 0 20px rgba(234, 88, 12, 0.6);
+            transition: all 0.2s ease-in-out;
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 35px rgba(234, 88, 12, 0.9);
+            transform: scale(1.03);
+        }
+        .glow-button:active {
+            transform: scale(0.97);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center overflow-hidden bg-slate-950 text-white">
+
+    <!-- Game Outer Container -->
+    <div id="game-container" class="relative w-[500px] sm:w-[580px] h-[780px] bg-purple-950/40 rounded-3xl spooky-border overflow-hidden flex flex-col items-center justify-center p-3">
+        
+        <!-- Background Ambient Particles Canvas -->
+        <canvas id="bgCanvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+
+        <!-- Top Sound Toggle Button -->
+        <button id="sound-btn" class="absolute top-4 right-4 z-30 bg-purple-950/80 border-2 border-orange-500 text-orange-300 hover:text-orange-100 px-4 py-2 rounded-xl text-base sm:text-lg font-bold flex items-center gap-2 shadow-lg hover:bg-purple-900 transition-all">
+            <span id="sound-icon">🔊</span>
+            <span id="sound-text">音效：開啟</span>
+        </button>
+
+        <!-- Gameplay Canvas Arena -->
+        <canvas id="gameCanvas" width="540" height="740" class="rounded-2xl z-10 bg-slate-950/90 cursor-none shadow-inner"></canvas>
+
+        <!-- HUD overlay during active game -->
+        <div id="hud" class="absolute top-6 left-6 right-20 flex justify-between items-center z-20 pointer-events-none hidden">
+            <div class="bg-black/80 border-2 border-orange-500/80 px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-3">
+                <span class="text-orange-400 font-extrabold text-2xl">存活時間:</span>
+                <span id="current-score" class="text-yellow-300 font-black text-3xl sm:text-4xl font-mono tracking-wider">0.0s</span>
+            </div>
+            <div id="instruction-hud" class="bg-purple-900/90 border-2 border-purple-400 text-purple-200 px-4 py-2 rounded-2xl text-xl sm:text-2xl font-black animate-pulse shadow-md">
+                👈 觸控 / 移動手指開始！
+            </div>
+        </div>
+
+        <!-- START MENU SCREEN -->
+        <div id="menu-screen" class="absolute inset-0 z-30 bg-slate-950/95 flex flex-col items-center justify-between p-6 text-center rounded-3xl backdrop-blur-md">
+            <!-- Decorative Spooky Web Corners -->
+            <div class="absolute top-2 left-2 text-4xl opacity-40 pointer-events-none select-none">🕸️</div>
+            <div class="absolute top-2 right-2 text-4xl opacity-40 pointer-events-none select-none">🕸️</div>
+
+            <!-- Title Header -->
+            <div class="mt-4">
+                <h1 class="text-5xl sm:text-6xl font-black tracking-wider text-orange-500 spooky-text-shadow font-creepster">
+                    🎃 噩夢競技場 👻
+                </h1>
+                <p class="text-purple-300 text-lg sm:text-xl mt-3 max-w-md font-bold leading-relaxed px-2">
+                    躲避隨機彈跳的吸血鬼與幽靈！<br>
+                    按「開始遊戲」後，<span class="text-yellow-400">觸碰螢幕才會開始移動</span>！
+                </p>
+            </div>
+
+            <!-- Start Button -->
+            <button id="start-btn" class="glow-button bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 text-slate-950 font-black text-2xl sm:text-3xl px-10 py-5 rounded-2xl tracking-widest my-2 cursor-pointer border-2 border-yellow-200">
+                開始遊戲 🕷️
+            </button>
+
+            <!-- High Scores Box -->
+            <div class="w-full max-w-md bg-purple-950/60 border-2 border-purple-500/50 rounded-2xl p-4 shadow-xl mb-2">
+                <h3 class="text-yellow-400 font-black text-xl sm:text-2xl mb-3 flex items-center justify-center gap-2 border-b border-purple-500/40 pb-2">
+                    🏆 歷史前 5 名最高紀錄 🏆
+                </h3>
+                <ul id="score-list" class="space-y-2 text-slate-200 font-bold text-base sm:text-lg">
+                    <!-- Highscore entries rendered dynamically -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="gameover-screen" class="absolute inset-0 z-30 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center rounded-3xl backdrop-blur-md hidden">
+            <div class="text-7xl mb-2 animate-bounce">💀</div>
+            <h1 class="text-5xl sm:text-6xl font-black text-red-500 spooky-text-shadow font-creepster mb-4">
+                遊戲結束
+            </h1>
+            <p class="text-slate-300 text-xl sm:text-2xl font-bold mb-2">你成功存活了：</p>
+            <div id="final-score" class="text-5xl sm:text-6xl font-black text-yellow-400 font-mono my-2 spooky-text-shadow">
+                0.0s
+            </div>
+            <p id="new-record-msg" class="text-orange-400 font-black text-2xl my-2 hidden animate-pulse">
+                🎉 刷新最高紀錄！
+            </p>
+            <button id="restart-btn" class="glow-button mt-6 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 text-slate-950 font-black text-2xl sm:text-3xl px-10 py-5 rounded-2xl tracking-wider cursor-pointer border-2 border-yellow-200">
+                再次挑戰 🎃
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Canvas & Context Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+
+        // UI DOM Elements
+        const menuScreen = document.getElementById('menu-screen');
+        const gameOverScreen = document.getElementById('gameover-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const hud = document.getElementById('hud');
+        const currentScoreEl = document.getElementById('current-score');
+        const finalScoreEl = document.getElementById('final-score');
+        const scoreListEl = document.getElementById('score-list');
+        const instructionHud = document.getElementById('instruction-hud');
+        const newRecordMsg = document.getElementById('new-record-msg');
+        const soundBtn = document.getElementById('sound-btn');
+        const soundIcon = document.getElementById('sound-icon');
+        const soundText = document.getElementById('sound-text');
+
+        // Game State Constants
+        const STATE_MENU = 0;
+        const STATE_WAITING = 1;
+        const STATE_PLAYING = 2;
+        const STATE_GAMEOVER = 3;
+        let gameState = STATE_MENU;
+
+        // Core Game Variables
+        let score = 0;
+        let startTime = 0;
+        let speedMultiplier = 1;
+        let animationFrameId = null;
+        let soundEnabled = true;
+
+        // Web Audio API Procedural Sound Engine
+        let audioCtx = null;
+        let droneOsc1 = null, droneOsc2 = null, droneGain = null;
+
+        function initAudio() {
+            if (audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            // Dark ambient drone oscillators
+            droneOsc1 = audioCtx.createOscillator();
+            droneOsc2 = audioCtx.createOscillator();
+            droneGain = audioCtx.createGain();
+
+            droneOsc1.type = 'sawtooth';
+            droneOsc1.frequency.setValueAtTime(55, audioCtx.currentTime); // Low A
+
+            droneOsc2.type = 'sine';
+            droneOsc2.frequency.setValueAtTime(58.73, audioCtx.currentTime); // Dissonant Bb
+
+            // Lowpass filter for deep spooky rumble
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(160, audioCtx.currentTime);
+
+            droneGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+            droneOsc1.connect(filter);
+            droneOsc2.connect(filter);
+            filter.connect(droneGain);
+            droneGain.connect(audioCtx.destination);
+
+            droneOsc1.start();
+            droneOsc2.start();
+        }
+
+        function playSpookyStinger() {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+                
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e){}
+        }
+
+        function playCollisionSound() {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.6);
+                
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
+            } catch(e){}
+        }
+
+        soundBtn.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            if (soundEnabled) {
+                soundIcon.textContent = '🔊';
+                soundText.textContent = '音效：開啟';
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                if (droneGain) droneGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            } else {
+                soundIcon.textContent = '🔇';
+                soundText.textContent = '音效：關閉';
+                if (droneGain) droneGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            }
+        });
+
+        // Resize Ambient Background Particles Canvas
+        function resizeBgCanvas() {
+            bgCanvas.width = bgCanvas.offsetWidth;
+            bgCanvas.height = bgCanvas.offsetHeight;
+        }
+        window.addEventListener('resize', resizeBgCanvas);
+        resizeBgCanvas();
+
+        // Background Floating Ember Particles
+        const bgParticles = Array.from({ length: 30 }, () => ({
+            x: Math.random() * 580,
+            y: Math.random() * 780,
+            radius: Math.random() * 2.5 + 1,
+            vy: -Math.random() * 0.8 - 0.2,
+            opacity: Math.random() * 0.6 + 0.2,
+            color: Math.random() > 0.5 ? '#ea580c' : '#9333ea'
+        }));
+
+        function drawBgParticles() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            for (let p of bgParticles) {
+                p.y += p.vy;
+                if (p.y < 0) {
+                    p.y = bgCanvas.height;
+                    p.x = Math.random() * bgCanvas.width;
+                }
+                bgCtx.beginPath();
+                bgCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                bgCtx.fillStyle = p.color;
+                bgCtx.globalAlpha = p.opacity;
+                bgCtx.fill();
+            }
+            bgCtx.globalAlpha = 1.0;
+            requestAnimationFrame(drawBgParticles);
+        }
+        drawBgParticles();
+
+        // Player Square (Pumpkin Amulet)
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: 28,
+            color: '#f97316'
+        };
+
+        // Halloween Enemies (Vampires & Ghosts)
+        let monsters = [];
+        const numMonsters = 10;
+
+        function initMonsters() {
+            monsters = [];
+            for (let i = 0; i < numMonsters; i++) {
+                const radius = 16 + Math.random() * 8;
+                let x, y;
+                // Ensure monsters start at a safe distance from player center
+                do {
+                    x = Math.random() * (canvas.width - radius * 4) + radius * 2;
+                    y = Math.random() * (canvas.height - radius * 4) + radius * 2;
+                } while (Math.hypot(x - player.x, y - player.y) < 110);
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2.2 + Math.random() * 1.8;
+                const type = i % 2 === 0 ? 'vampire' : 'ghost';
+
+                monsters.push({
+                    x: x,
+                    y: y,
+                    radius: radius,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    type: type,
+                    floatOffset: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        // Local Storage High Scores Management
+        function getHighScores() {
+            const scores = localStorage.getItem('nightmare_arena_scores_v2');
+            return scores ? JSON.parse(scores) : [];
+        }
+
+        function saveHighScore(newScore) {
+            let scores = getHighScores();
+            scores.push(newScore);
+            scores.sort((a, b) => b - a);
+            scores = scores.slice(0, 5); // Retain Top 5 records
+            localStorage.setItem('nightmare_arena_scores_v2', JSON.stringify(scores));
+            return scores[0] === newScore; // Returns true if it's new top score
+        }
+
+        function renderHighScores() {
+            const scores = getHighScores();
+            scoreListEl.innerHTML = '';
+            if (scores.length === 0) {
+                scoreListEl.innerHTML = '<li class="text-purple-300/60 py-1">尚無高分紀錄</li>';
+                return;
+            }
+            scores.forEach((s, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-purple-900/40 px-4 py-2 rounded-xl border border-purple-500/20';
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '👻';
+                li.innerHTML = `<span class="flex items-center gap-2"><span class="text-lg">${medal}</span> 第 ${index + 1} 名</span><span class="font-mono text-yellow-300 font-black text-xl">${s.toFixed(1)}s</span>`;
+                scoreListEl.appendChild(li);
+            });
+        }
+
+        // Touch & Mouse Pointer Tracking
+        function updatePlayerPosition(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
+
+            // Constrain player square inside canvas bounds
+            player.x = Math.max(player.size / 2, Math.min(canvas.width - player.size / 2, x));
+            player.y = Math.max(player.size / 2, Math.min(canvas.height - player.size / 2, y));
+
+            // Start movement when user touches/points screen
+            if (gameState === STATE_WAITING) {
+                gameState = STATE_PLAYING;
+                startTime = performance.now();
+                instructionHud.classList.add('hidden');
+                playSpookyStinger();
+            }
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (gameState === STATE_WAITING || gameState === STATE_PLAYING) {
+                updatePlayerPosition(e.clientX, e.clientY);
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length > 0 && (gameState === STATE_WAITING || gameState === STATE_PLAYING)) {
+                updatePlayerPosition(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length > 0 && (gameState === STATE_WAITING || gameState === STATE_PLAYING)) {
+                updatePlayerPosition(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        // Event Listeners for UI Buttons
+        startBtn.addEventListener('click', () => {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+            menuScreen.classList.add('hidden');
+            hud.classList.remove('hidden');
+            instructionHud.classList.remove('hidden');
+            
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            initMonsters();
+            speedMultiplier = 1;
+            gameState = STATE_WAITING;
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+            hud.classList.add('hidden');
+            renderHighScores();
+        });
+
+        // Drawing Halloween Monster Entities
+        function drawVampire(m) {
+            ctx.save();
+            ctx.translate(m.x, m.y);
+
+            // Bat Wings
+            ctx.fillStyle = '#3b0764';
+            ctx.beginPath();
+            ctx.ellipse(-m.radius * 0.9, -2, m.radius * 0.8, m.radius * 0.4, -Math.PI / 6, 0, Math.PI * 2);
+            ctx.ellipse(m.radius * 0.9, -2, m.radius * 0.8, m.radius * 0.4, Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Vampire Head Body
+            ctx.beginPath();
+            ctx.arc(0, 0, m.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#581c87';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#a855f7';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Glowing Red Eyes
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(-m.radius * 0.35, -m.radius * 0.15, m.radius * 0.22, 0, Math.PI * 2);
+            ctx.arc(m.radius * 0.35, -m.radius * 0.15, m.radius * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pupil glow
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(-m.radius * 0.35, -m.radius * 0.15, m.radius * 0.08, 0, Math.PI * 2);
+            ctx.arc(m.radius * 0.35, -m.radius * 0.15, m.radius * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Fangs
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(-m.radius * 0.25, m.radius * 0.3);
+            ctx.lineTo(-m.radius * 0.15, m.radius * 0.7);
+            ctx.lineTo(-m.radius * 0.05, m.radius * 0.3);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(m.radius * 0.05, m.radius * 0.3);
+            ctx.lineTo(m.radius * 0.15, m.radius * 0.7);
+            ctx.lineTo(m.radius * 0.25, m.radius * 0.3);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawGhost(m) {
+            ctx.save();
+            ctx.translate(m.x, m.y);
+
+            // Ghostly aura glow
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#38bdf8';
+
+            // Ghost Spectral Body
+            ctx.fillStyle = 'rgba(240, 249, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(0, -m.radius * 0.2, m.radius, Math.PI, 0, false);
+            // Floating ghost bottom ripples
+            ctx.lineTo(m.radius, m.radius * 0.8);
+            ctx.quadraticCurveTo(m.radius * 0.5, m.radius * 0.4, 0, m.radius * 0.8);
+            ctx.quadraticCurveTo(-m.radius * 0.5, m.radius * 0.4, -m.radius, m.radius * 0.8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Ghost Eyes
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(-m.radius * 0.35, -m.radius * 0.1, m.radius * 0.2, 0, Math.PI * 2);
+            ctx.arc(m.radius * 0.35, -m.radius * 0.1, m.radius * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Surprised Ghost Mouth
+            ctx.beginPath();
+            ctx.ellipse(0, m.radius * 0.3, m.radius * 0.18, m.radius * 0.28, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawPlayerSquare() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            // Glowing Outer Pumpkin Square Frame
+            ctx.fillStyle = player.color;
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = '#ea580c';
+            const half = player.size / 2;
+            ctx.fillRect(-half, -half, player.size, player.size);
+            ctx.shadowBlur = 0;
+
+            // Pumpkin Face Carving Detail
+            ctx.fillStyle = '#090514';
+            // Eyes
+            ctx.beginPath();
+            ctx.moveTo(-half + 5, -half + 7);
+            ctx.lineTo(-half + 11, -half + 7);
+            ctx.lineTo(-half + 8, -half + 12);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(half - 5, -half + 7);
+            ctx.lineTo(half - 11, -half + 7);
+            ctx.lineTo(half - 8, -half + 12);
+            ctx.closePath();
+            ctx.fill();
+
+            // Jagged Mouth
+            ctx.beginPath();
+            ctx.moveTo(-half + 5, half - 7);
+            ctx.lineTo(-half + 8, half - 10);
+            ctx.lineTo(0, half - 6);
+            ctx.lineTo(half - 8, half - 10);
+            ctx.lineTo(half - 5, half - 7);
+            ctx.lineTo(0, half - 3);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // Main Game Loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw subtle background grid pattern inside arena
+            ctx.strokeStyle = 'rgba(147, 51, 234, 0.08)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Game Logic during ACTIVE state
+            if (gameState === STATE_PLAYING) {
+                const currentTime = performance.now();
+                score = (currentTime - startTime) / 1000;
+                
+                // Monsters accelerate over time (+15% speed every 5s)
+                speedMultiplier = 1 + (score / 5) * 0.15;
+                currentScoreEl.textContent = score.toFixed(1) + 's';
+
+                // Update monster positions & bouncing
+                for (let m of monsters) {
+                    m.x += m.vx * speedMultiplier;
+                    m.y += m.vy * speedMultiplier;
+
+                    // Arena Boundary Bouncing
+                    if (m.x - m.radius <= 0) {
+                        m.x = m.radius;
+                        m.vx *= -1;
+                    } else if (m.x + m.radius >= canvas.width) {
+                        m.x = canvas.width - m.radius;
+                        m.vx *= -1;
+                    }
+
+                    if (m.y - m.radius <= 0) {
+                        m.y = m.radius;
+                        m.vy *= -1;
+                    } else if (m.y + m.radius >= canvas.height) {
+                        m.y = canvas.height - m.radius;
+                        m.vy *= -1;
+                    }
+
+                    // Collision Detection: Bounding Box (Square Player) vs Circle (Monster)
+                    const distX = Math.abs(player.x - m.x);
+                    const distY = Math.abs(player.y - m.y);
+
+                    if (distX < (player.size / 2 + m.radius * 0.85) && distY < (player.size / 2 + m.radius * 0.85)) {
+                        // COLLISION OCCURRED!
+                        gameState = STATE_GAMEOVER;
+                        playCollisionSound();
+                        const isNewTop = saveHighScore(score);
+                        finalScoreEl.textContent = score.toFixed(1) + 's';
+
+                        if (isNewTop) {
+                            newRecordMsg.classList.remove('hidden');
+                        } else {
+                            newRecordMsg.classList.add('hidden');
+                        }
+
+                        gameOverScreen.classList.remove('hidden');
+                        hud.classList.add('hidden');
+                    }
+                }
+            }
+
+            // Render All Monsters
+            for (let m of monsters) {
+                if (m.type === 'vampire') {
+                    drawVampire(m);
+                } else {
+                    drawGhost(m);
+                }
+            }
+
+            // Render Player Square Amulet
+            drawPlayerSquare();
+
+            // Request next frame
+            if (gameState !== STATE_GAMEOVER && gameState !== STATE_MENU) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Initialize high score list on initial page load
+        renderHighScores();
+    </script>
+</body>
+</html>
