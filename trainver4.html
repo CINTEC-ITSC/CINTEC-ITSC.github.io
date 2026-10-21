@@ -2,1250 +2,961 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>特技火車 (Acrobatic Train - 3D Enhanced)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 電車跑酷 - Acrobatic Train Runner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
+        body, html {
             margin: 0;
             padding: 0;
-        }
-        body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #050814;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', 'PingFang TC', -apple-system, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        #game-container {
-            position: relative;
-            width: 100%;
-            max-width: 900px;
-            height: 100vh;
-            max-height: 700px;
-            background: #000;
-            box-shadow: 0 0 40px rgba(0,240,255,0.3), inset 0 0 20px rgba(0,0,0,0.8);
-            overflow: hidden;
-            border-radius: 12px;
-            border: 2px solid rgba(0,240,255,0.4);
-        }
-        canvas {
-            display: block;
+        #canvas-container {
             width: 100%;
             height: 100%;
-        }
-        /* HUD UI Elements */
-        .hud {
             position: absolute;
-            top: 15px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            pointer-events: none;
-            z-index: 10;
-        }
-        .hud-panel {
-            background: rgba(10, 20, 40, 0.85);
-            border: 2px solid #00f0ff;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), inset 0 0 10px rgba(0, 240, 255, 0.2);
-            border-radius: 10px;
-            padding: 10px 18px;
-            backdrop-filter: blur(6px);
-        }
-        .score-box {
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: #fff;
-            text-shadow: 0 0 10px #00f0ff;
-        }
-        .speed-box {
-            font-size: 14px;
-            color: #ffea00;
-            margin-top: 4px;
-            font-weight: 600;
-            text-shadow: 0 0 6px rgba(255,234,0,0.6);
-        }
-        .wheels-indicator {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            align-items: flex-end;
-        }
-        .wheel-status {
-            font-size: 13px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .track-badge {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            line-height: 24px;
-            text-align: center;
-            border-radius: 50%;
-            background: #ff0055;
-            color: #fff;
-            font-size: 12px;
-            box-shadow: 0 0 8px #ff0055;
-        }
-        .track-badge.rear {
-            background: #00e5ff;
-            box-shadow: 0 0 8px #00e5ff;
-        }
-
-        /* Overlay Screens */
-        .overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(8, 12, 24, 0.92);
-            backdrop-filter: blur(8px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 20;
-            padding: 20px;
-            text-align: center;
-        }
-        .hidden {
-            display: none !important;
-        }
-        h1 {
-            font-size: 40px;
-            margin-bottom: 5px;
-            color: #00f0ff;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 0 0 20px rgba(0, 240, 255, 0.9), 0 0 40px rgba(0, 240, 255, 0.5);
-        }
-        h2.subtitle {
-            font-size: 18px;
-            color: #ff0055;
-            margin-bottom: 25px;
-            letter-spacing: 2px;
-            text-shadow: 0 0 12px rgba(255, 0, 85, 0.8);
-        }
-        .instructions-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(0, 240, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 520px;
-            margin-bottom: 25px;
-            text-align: left;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .instructions-card h3 {
-            color: #ffea00;
-            margin-bottom: 10px;
-            font-size: 16px;
-            text-transform: uppercase;
-            text-shadow: 0 0 8px rgba(255,234,0,0.5);
-        }
-        .control-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            border-bottom: 1px dashed rgba(255,255,255,0.15);
-            padding-bottom: 4px;
-        }
-        .key-badge {
-            background: #1a2942;
-            border: 1px solid #00f0ff;
-            box-shadow: 0 0 6px rgba(0,240,255,0.4);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            color: #00f0ff;
-        }
-        .btn {
-            background: linear-gradient(45deg, #ff0055, #ff5500);
-            color: white;
-            border: none;
-            padding: 14px 42px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.7);
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .btn:hover {
-            transform: scale(1.06);
-            box-shadow: 0 0 30px rgba(255, 0, 85, 1);
-        }
-        .game-over-stats {
-            font-size: 20px;
-            margin: 15px 0 25px;
-            line-height: 1.8;
-            color: #ddd;
-        }
-        .game-over-stats span {
-            color: #00f0ff;
-            font-weight: bold;
-            font-size: 26px;
-            text-shadow: 0 0 10px rgba(0,240,255,0.6);
-        }
-
-        /* On-Screen Mobile Controls */
-        .touch-controls {
-            position: absolute;
-            bottom: 15px;
+            top: 0;
             left: 0;
-            right: 0;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 20px;
-            z-index: 10;
-            pointer-events: none;
+            z-index: 1;
         }
-        .touch-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            pointer-events: auto;
+        .ui-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
-        .touch-title {
-            font-size: 11px;
-            font-weight: bold;
-            text-shadow: 0 0 4px #000;
-            background: rgba(0,0,0,0.7);
-            padding: 2px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .touch-btns {
-            display: flex;
-            gap: 10px;
-        }
-        .t-btn {
-            width: 58px;
-            height: 58px;
-            border-radius: 50%;
-            background: rgba(10, 20, 40, 0.8);
-            border: 2px solid #00f0ff;
-            color: #fff;
-            font-size: 20px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .touch-btn {
+            active: scale-95;
+            transition: transform 0.1s, background-color 0.1s;
             touch-action: manipulation;
-            box-shadow: 0 0 12px rgba(0,240,255,0.4);
-        }
-        .t-btn:active {
-            background: #00f0ff;
-            color: #000;
-        }
-        .t-btn.rear {
-            border-color: #ff0055;
-            box-shadow: 0 0 12px rgba(255,0,85,0.4);
-        }
-        .t-btn.rear:active {
-            background: #ff0055;
-            color: #fff;
-        }
-        @media (min-width: 768px) {
-            .touch-controls {
-                display: none;
-            }
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-900 text-white flex flex-col justify-between h-screen overflow-hidden">
 
-<div id="game-container">
-    <canvas id="gameCanvas"></canvas>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
 
-    <!-- Real-time HUD -->
-    <div class="hud">
-        <div class="hud-panel">
-            <div class="score-box">分數: <span id="scoreVal">0</span></div>
-            <div class="speed-box">速度: <span id="speedVal">100</span> km/h | 距離: <span id="distVal">0</span>m</div>
+    <!-- HUD Header Overlay -->
+    <div class="relative z-10 p-4 sm:p-6 flex justify-between items-start pointer-events-none">
+        <!-- Score & High Score -->
+        <div class="ui-panel rounded-2xl p-4 flex flex-col gap-1 min-w-[150px] pointer-events-auto">
+            <div class="text-xs text-slate-400 font-semibold tracking-wider uppercase">當前得分 SCORE</div>
+            <div id="score-text" class="text-3xl font-extrabold text-amber-400 tracking-tight">0</div>
+            <div class="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-1">最高紀錄 HIGH</div>
+            <div id="highscore-text" class="text-lg font-bold text-slate-200">0</div>
         </div>
-        <div class="hud-panel wheels-indicator">
-            <div class="wheel-status">
-                前輪軌道: <span class="track-badge" id="frontBadge">2</span>
+
+        <!-- Speed & Distance -->
+        <div class="ui-panel rounded-2xl p-4 flex flex-col gap-1 min-w-[140px] text-right pointer-events-auto">
+            <div class="text-xs text-slate-400 font-semibold tracking-wider uppercase">車速 SPEED</div>
+            <div class="flex items-baseline justify-end gap-1">
+                <span id="speed-text" class="text-3xl font-extrabold text-emerald-400">80</span>
+                <span class="text-xs text-emerald-500 font-bold">km/h</span>
             </div>
-            <div class="wheel-status">
-                後輪軌道: <span class="track-badge rear" id="rearBadge">2</span>
+            <div class="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-1">距離 DISTANCE</div>
+            <div id="distance-text" class="text-lg font-bold text-slate-200">0 m</div>
+        </div>
+    </div>
+
+    <!-- Mobile / On-Screen Touch Controls -->
+    <div class="relative z-10 p-4 pb-6 flex justify-between items-end gap-4 pointer-events-none md:hidden">
+        <!-- Front Bogie Controls -->
+        <div class="flex flex-col items-center gap-1 pointer-events-auto">
+            <span class="text-xs font-bold text-emerald-300 bg-slate-900/80 px-2 py-0.5 rounded-full border border-emerald-500/30">前輪轉向 (Front)</span>
+            <div class="flex gap-2">
+                <button id="btn-front-left" class="touch-btn bg-slate-800/90 active:bg-emerald-600 border border-emerald-500/40 text-emerald-400 text-xl font-bold w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">←</button>
+                <button id="btn-front-right" class="touch-btn bg-slate-800/90 active:bg-emerald-600 border border-emerald-500/40 text-emerald-400 text-xl font-bold w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">→</button>
+            </div>
+        </div>
+
+        <!-- Rear Bogie Controls -->
+        <div class="flex flex-col items-center gap-1 pointer-events-auto">
+            <span class="text-xs font-bold text-cyan-300 bg-slate-900/80 px-2 py-0.5 rounded-full border border-cyan-500/30">後輪轉向 (Rear)</span>
+            <div class="flex gap-2">
+                <button id="btn-rear-left" class="touch-btn bg-slate-800/90 active:bg-cyan-600 border border-cyan-500/40 text-cyan-400 text-xl font-bold w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">←</button>
+                <button id="btn-rear-right" class="touch-btn bg-slate-800/90 active:bg-cyan-600 border border-cyan-500/40 text-cyan-400 text-xl font-bold w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">→</button>
             </div>
         </div>
     </div>
 
-    <!-- On-screen Touch Controls -->
-    <div class="touch-controls" id="touchControls">
-        <div class="touch-group">
-            <div class="touch-title" style="color:#00f0ff;">前輪控制</div>
-            <div class="touch-btns">
-                <div class="t-btn" id="btnFrontLeft">&#9664;</div>
-                <div class="t-btn" id="btnFrontRight">&#9654;</div>
+    <!-- Start / Game Over Modal -->
+    <div id="game-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="ui-panel max-w-lg w-full rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl border border-white/20">
+            <!-- Train Logo Icon -->
+            <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30">
+                <svg class="w-10 h-10 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 4h8m-4 8l-3-3m6 0l3-3M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path>
+                </svg>
             </div>
-        </div>
-        <div class="touch-group">
-            <div class="touch-title" style="color:#ff0055;">後輪控制</div>
-            <div class="touch-btns">
-                <div class="t-btn rear" id="btnRearLeft">&#9664;</div>
-                <div class="t-btn rear" id="btnRearRight">&#9654;</div>
+
+            <h1 id="modal-title" class="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-400 bg-clip-text text-transparent mb-2">
+                3D 電車特技跑酷
+            </h1>
+            <p id="modal-subtitle" class="text-slate-300 text-sm sm:text-base mb-6">
+                掌控前後輪轉向架，展現斜跨軌道特技與高空跳躍！
+            </p>
+
+            <!-- Control Guide -->
+            <div class="w-full bg-slate-900/80 rounded-2xl p-4 mb-6 text-left border border-slate-700/60 text-xs sm:text-sm space-y-3">
+                <div class="font-bold text-emerald-400 border-b border-slate-800 pb-1.5 flex items-center justify-between">
+                    <span>🎮 操作指南 CONTROLS</span>
+                    <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">鍵盤 / 觸控</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50">
+                        <div class="text-emerald-300 font-semibold mb-1">前輪轉向架</div>
+                        <div class="text-slate-300 font-mono"><span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">A</span> / <span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">D</span> 或 <span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">←</span> <span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">→</span></div>
+                    </div>
+                    <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50">
+                        <div class="text-cyan-300 font-semibold mb-1">後輪轉向架</div>
+                        <div class="text-slate-300 font-mono"><span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">Q</span> / <span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">E</span> 或 <span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">Z</span> <span class="bg-slate-700 px-1.5 py-0.5 rounded text-white font-bold">X</span></div>
+                    </div>
+                </div>
+                <div class="text-slate-400 text-[11px] leading-relaxed pt-1">
+                    ✨ <b class="text-amber-300">斜跨姿勢：</b>將前後輪置於不同軌道以切入軌道間隙吃金幣！<br>
+                    🚀 <b class="text-amber-300">跳躍機制：</b>通過高低差斜坡飛躍空中，姿勢影響飛躍高度。
+                </div>
             </div>
+
+            <!-- Start / Retry Button -->
+            <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-98 text-slate-950 font-extrabold text-lg rounded-2xl shadow-lg shadow-emerald-500/25 transition-all duration-200">
+                開始遊戲 START GAME
+            </button>
         </div>
     </div>
 
-    <!-- Start Overlay -->
-    <div class="overlay" id="startScreen">
-        <h1>特技火車</h1>
-        <h2 class="subtitle">アクロバティックトレイン (3D ENHANCED)</h2>
+    <!-- Main Game Logic Script -->
+    <script>
+        // --- GAME CONSTANTS & CONFIGS ---
+        const TRACK_SPACING = 3.2;       // Distance between parallel tracks
+        const TRACK_X_POS = [-TRACK_SPACING, 0, TRACK_SPACING]; // Track -1, 0, 1
+        const BOGIE_DISTANCE = 6.0;      // Distance between front & rear bogie
+        const INITIAL_SPEED = 30.0;       // Starting speed (m/s)
+        const SPEED_INCREMENT = 0.35;    // Speed boost per second
+        const MAX_SPEED = 90.0;          // Max speed cap
+        const JUMP_VELOCITY = 15.0;      // Jump vertical velocity from ramp
+        const GRAVITY = 32.0;             // Gravity acceleration
+
+        // --- GAME STATE ---
+        let scene, camera, renderer;
+        let isPlaying = false;
+        let score = 0;
+        let highScore = localStorage.getItem('acrobatic_train_highscore') || 0;
+        let distanceTraveled = 0;
+        let currentSpeed = INITIAL_SPEED;
+
+        // Bogie Lane Indexes (-1: Left, 0: Center, 1: Right)
+        let frontTargetLane = 0;
+        let rearTargetLane = 0;
+        let frontX = 0, rearX = 0;
         
-        <div class="instructions-card">
-            <h3>遊戲玩法說明</h3>
-            <div class="control-row">
-                <span>前輪 左移 / 右移</span>
-                <div><span class="key-badge">&larr;</span> <span class="key-badge">&rarr;</span></div>
-            </div>
-            <div class="control-row">
-                <span>後輪 左移 / 右移</span>
-                <div><span class="key-badge">A</span> <span class="key-badge">D</span></div>
-            </div>
-            <p style="margin-top: 10px;">
-                &#128646; <strong>3D 特技傾斜：</strong>前輪與後輪位於不同軌道時，3D車身將動態斜向跨越雙軌！
-            </p>
-            <p style="margin-top: 6px;">
-                &#128142; <strong>軌道間收集：</strong>斜向傾斜車身以收集軌道縫隙間的高分鑽石！
-            </p>
-            <p style="margin-top: 6px;">
-                &#11088; <strong>坡道跳躍加成：</strong>在斜向傾斜狀態下衝上坡道，可獲得極高跳躍高度與高空星星！
-            </p>
-            <p style="margin-top: 6px; color:#ff5555;">
-                &#9888; 避開岩石、迎面而來的火車與禁止通行標誌！
-            </p>
-        </div>
+        // Train Vertical Physics
+        let trainY = 0;
+        let trainVY = 0;
+        let isGrounded = true;
 
-        <button class="btn" id="startBtn">開始遊戲</button>
-    </div>
+        // 3D Objects
+        let trainGroup, frontBogieObj, rearBogieObj, trainBodyObj;
+        let tracksGroup, environmentGroup;
+        let obstacles = [];
+        let coins = [];
+        let ramps = [];
+        let particles = [];
 
-    <!-- Game Over Overlay -->
-    <div class="overlay hidden" id="gameOverScreen">
-        <h1 style="color: #ff0055;">列車脫軌！</h1>
-        <h2 class="subtitle">遊戲結束</h2>
-        
-        <div class="game-over-stats">
-            最終分數: <br><span id="finalScore">0</span><br><br>
-            行駛距離: <br><span id="finalDist">0</span> 公尺
-        </div>
+        // Procedural Generation Track Markers
+        let spawnZ = -50;
+        const SPAWN_CHUNK_SIZE = 120;
+        const RENDER_DISTANCE = 350;
 
-        <button class="btn" id="restartBtn">再試一次</button>
-    </div>
-</div>
+        // Delta Clock
+        const clock = new THREE.Clock();
 
-<script>
-    // --- Audio Synthesizer (Web Audio API) ---
-    class SoundEffects {
-        constructor() {
-            this.ctx = null;
+        // --- DOM ELEMENTS ---
+        const scoreEl = document.getElementById('score-text');
+        const highScoreEl = document.getElementById('highscore-text');
+        const speedEl = document.getElementById('speed-text');
+        const distanceEl = document.getElementById('distance-text');
+        const gameModal = document.getElementById('game-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalSubtitle = document.getElementById('modal-subtitle');
+        const startBtn = document.getElementById('start-btn');
+
+        highScoreEl.innerText = highScore;
+
+        // --- INITIALIZATION ---
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. THREE.JS SCENE SETUP
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xb2e2f7); // Pale blue sky
+            scene.fog = new THREE.FogExp2(0xb2e2f7, 0.0035);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lightings
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfff8e7, 0.85);
+            sunLight.position.set(40, 80, 20);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 250;
+            const d = 40;
+            sunLight.shadow.camera.left = -d;
+            sunLight.shadow.camera.right = d;
+            sunLight.shadow.camera.top = d;
+            sunLight.shadow.camera.bottom = -d;
+            scene.add(sunLight);
+
+            // Groups
+            tracksGroup = new THREE.Group();
+            environmentGroup = new THREE.Group();
+            scene.add(tracksGroup);
+            scene.add(environmentGroup);
+
+            // Build Scene Base
+            createGrassAndMountains();
+            createTrainModel();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            setupControls();
+
+            // Initial Render Loop
+            requestAnimationFrame(animate);
         }
-        init() {
-            if (!this.ctx) {
-                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // --- PROCEDURAL SCENE GENERATION ---
+
+        // Grass Ground Plane & Background Distant Mountains
+        function createGrassAndMountains() {
+            // Infinite Grass Ground Plane
+            const groundGeo = new THREE.PlaneGeometry(600, 1500);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x5a9e32 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.15;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Distant Low Mountains / Hills
+            const mountainGeo = new THREE.ConeGeometry(80, 45, 7);
+            const mountainMat = new THREE.MeshLambertMaterial({ color: 0x7fa274, flatShading: true });
+
+            for (let i = 0; i < 18; i++) {
+                const mountain = new THREE.Mesh(mountainGeo, mountainMat);
+                const side = (i % 2 === 0) ? 1 : -1;
+                mountain.position.set(
+                    side * (120 + Math.random() * 80),
+                    10,
+                    -400 + (i * 50) + Math.random() * 20
+                );
+                mountain.scale.set(1 + Math.random() * 0.5, 0.8 + Math.random() * 0.5, 1 + Math.random() * 0.5);
+                scene.add(mountain);
             }
         }
-        playCoin() {
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(987.77, this.ctx.currentTime);
-            osc.frequency.setValueAtTime(1318.51, this.ctx.currentTime + 0.08);
-            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.25);
+
+        // Pine Tree Model Generator
+        function createTreeMesh() {
+            const treeGroup = new THREE.Group();
+            
+            // Trunk
+            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, 2, 6);
+            const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5a3d28 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 1;
+            trunk.castShadow = true;
+            treeGroup.add(trunk);
+
+            // Foliage (Conical Pine)
+            const foliageMat = new THREE.MeshLambertMaterial({ color: 0x1e5628, flatShading: true });
+            const cone1 = new THREE.Mesh(new THREE.ConeGeometry(1.8, 3, 6), foliageMat);
+            cone1.position.y = 2.5;
+            cone1.castShadow = true;
+            treeGroup.add(cone1);
+
+            const cone2 = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.5, 6), foliageMat);
+            cone2.position.y = 3.8;
+            cone2.castShadow = true;
+            treeGroup.add(cone2);
+
+            return treeGroup;
         }
-        playStar() {
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
-            osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.06);
-            osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.12);
-            osc.frequency.setValueAtTime(1046.50, this.ctx.currentTime + 0.18);
-            gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.35);
-        }
-        playJump() {
-            if (!this.ctx) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.3);
-        }
-        playCrash() {
-            if (!this.ctx) return;
-            const bufferSize = this.ctx.sampleRate * 0.5;
-            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
+
+        // --- 3D TRAIN MODEL CREATION (AUTHENTIC SPECIFICATIONS) ---
+        function createTrainModel() {
+            trainGroup = new THREE.Group();
+
+            // Bogie Base Wheels Assemblies
+            const bogieGeo = new THREE.BoxGeometry(1.6, 0.4, 2.2);
+            const bogieMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+
+            frontBogieObj = new THREE.Mesh(bogieGeo, bogieMat);
+            rearBogieObj = new THREE.Mesh(bogieGeo, bogieMat);
+            frontBogieObj.position.set(0, 0.3, -BOGIE_DISTANCE / 2);
+            rearBogieObj.position.set(0, 0.3, BOGIE_DISTANCE / 2);
+
+            trainGroup.add(frontBogieObj);
+            trainGroup.add(rearBogieObj);
+
+            // Main Train Body Wrapper
+            trainBodyObj = new THREE.Group();
+
+            // Train Main Body Shell (Light Gray/White)
+            const bodyWidth = 2.2, bodyHeight = 2.7, bodyLength = 9.2;
+            const bodyGeo = new THREE.BoxGeometry(bodyWidth, bodyHeight, bodyLength);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xededed, roughness: 0.3 });
+            const mainBody = new THREE.Mesh(bodyGeo, bodyMat);
+            mainBody.position.y = bodyHeight / 2 + 0.5;
+            mainBody.castShadow = true;
+            mainBody.receiveShadow = true;
+            trainBodyObj.add(mainBody);
+
+            // Green Stripe Ribbon (Side & Front Accent)
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.2 }); // Bright green stripe
+            const sideStripeGeo = new THREE.BoxGeometry(2.26, 0.22, bodyLength + 0.02);
+            const sideStripe = new THREE.Mesh(sideStripeGeo, stripeMat);
+            sideStripe.position.y = 1.1;
+            trainBodyObj.add(sideStripe);
+
+            // Front Windshield & Windows
+            const windowMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1 });
+            const frontWindow = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 0.1), windowMat);
+            frontWindow.position.set(0, 2.2, -bodyLength / 2 - 0.02);
+            trainBodyObj.add(frontWindow);
+
+            const rearWindow = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 0.1), windowMat);
+            rearWindow.position.set(0, 2.2, bodyLength / 2 + 0.02);
+            trainBodyObj.add(rearWindow);
+
+            // Side Windows
+            for (let z = -3; z <= 3; z += 1.8) {
+                const sideWinL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 1.2), windowMat);
+                sideWinL.position.set(-bodyWidth / 2 - 0.02, 2.2, z);
+                const sideWinR = sideWinL.clone();
+                sideWinR.position.x = bodyWidth / 2 + 0.02;
+                trainBodyObj.add(sideWinL);
+                trainBodyObj.add(sideWinR);
             }
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = buffer;
 
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(800, this.ctx.currentTime);
-            filter.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+            // Headlights & Tail Lights (Yellow indicators / Red tail)
+            const yellowLightMat = new THREE.MeshBasicMaterial({ color: 0xfbcb04 });
+            const redLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
 
-            const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+            const frontLightL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.15, 0.1), yellowLightMat);
+            frontLightL.position.set(-0.7, 1.4, -bodyLength / 2 - 0.03);
+            const frontLightR = frontLightL.clone();
+            frontLightR.position.x = 0.7;
+            trainBodyObj.add(frontLightL);
+            trainBodyObj.add(frontLightR);
 
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.ctx.destination);
-            noise.start();
-            noise.stop(this.ctx.currentTime + 0.5);
-        }
-        playWhistle() {
-            if (!this.ctx) return;
-            const osc1 = this.ctx.createOscillator();
-            const osc2 = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
+            const tailLightL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.1), redLightMat);
+            tailLightL.position.set(-0.7, 1.1, bodyLength / 2 + 0.03);
+            const tailLightR = tailLightL.clone();
+            tailLightR.position.x = 0.7;
+            trainBodyObj.add(tailLightL);
+            trainBodyObj.add(tailLightR);
 
-            osc1.type = 'sawtooth';
-            osc2.type = 'sawtooth';
-            osc1.frequency.setValueAtTime(600, this.ctx.currentTime);
-            osc2.frequency.setValueAtTime(750, this.ctx.currentTime);
+            // Roof Air Conditioners (White boxes with black vents)
+            const acGeo = new THREE.BoxGeometry(1.4, 0.35, 1.8);
+            const acMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db });
+            const ventMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
 
-            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+            [-2.2, 2.2].forEach(zPos => {
+                const acUnit = new THREE.Mesh(acGeo, acMat);
+                acUnit.position.set(0, bodyHeight + 0.65, zPos);
+                
+                // Black circular vent caps
+                const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 12), ventMat);
+                vent.position.set(-0.35, 0.2, 0);
+                const vent2 = vent.clone();
+                vent2.position.x = 0.35;
+                acUnit.add(vent);
+                acUnit.add(vent2);
 
-            osc1.connect(gain);
-            osc2.connect(gain);
-            gain.connect(this.ctx.destination);
-
-            osc1.start();
-            osc2.start();
-            osc1.stop(this.ctx.currentTime + 0.4);
-            osc2.stop(this.ctx.currentTime + 0.4);
-        }
-    }
-
-    const sound = new SoundEffects();
-
-    // --- Game Engine Variables ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    let gameState = 'START';
-    let score = 0;
-    let distance = 0;
-    let baseSpeed = 18;
-    let currentSpeed = baseSpeed;
-    let timeElapsed = 0;
-
-    const TRACK_X = [-1.0, 0.0, 1.0];
-
-    const train = {
-        frontTrack: 1,
-        rearTrack: 1,
-        frontX: 0.0,
-        rearX: 0.0,
-        zFront: 0.28,
-        zRear: 0.08,
-        y: 0,
-        vy: 0,
-        isGrounded: true,
-        length: 0.22
-    };
-
-    let width = 0, height = 0;
-    const fov = 320;
-    let horizonY = 0;
-
-    let obstacles = [];
-    let collectibles = [];
-    let scenery = [];
-    let particles = [];
-    let clouds = [];
-
-    let spawnTimer = 0;
-
-    const scoreVal = document.getElementById('scoreVal');
-    const speedVal = document.getElementById('speedVal');
-    const distVal = document.getElementById('distVal');
-    const frontBadge = document.getElementById('frontBadge');
-    const rearBadge = document.getElementById('rearBadge');
-    const startScreen = document.getElementById('startScreen');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const finalScore = document.getElementById('finalScore');
-    const finalDist = document.getElementById('finalDist');
-
-    function resizeCanvas() {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        width = canvas.width;
-        height = canvas.height;
-        horizonY = height * 0.38;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    // Initialize background clouds
-    for (let i = 0; i < 8; i++) {
-        clouds.push({
-            x: Math.random() * width,
-            y: Math.random() * (horizonY * 0.7) + 20,
-            scale: Math.random() * 0.6 + 0.4,
-            speed: Math.random() * 15 + 10
-        });
-    }
-
-    function project(worldX, worldY, worldZ) {
-        const scale = fov / (fov + worldZ * 800);
-        const x = width / 2 + worldX * (width * 0.28) * scale;
-        const y = horizonY + (height * 0.62 - worldY) * scale;
-        return { x, y, scale };
-    }
-
-    function moveFront(dir) {
-        if (gameState !== 'PLAYING') return;
-        train.frontTrack = Math.max(0, Math.min(2, train.frontTrack + dir));
-        updateTrackBadges();
-    }
-
-    function moveRear(dir) {
-        if (gameState !== 'PLAYING') return;
-        train.rearTrack = Math.max(0, Math.min(2, train.rearTrack + dir));
-        updateTrackBadges();
-    }
-
-    function updateTrackBadges() {
-        frontBadge.innerText = train.frontTrack + 1;
-        rearBadge.innerText = train.rearTrack + 1;
-    }
-
-    window.addEventListener('keydown', (e) => {
-        if (gameState !== 'PLAYING') return;
-        switch(e.key) {
-            case 'ArrowLeft': moveFront(-1); break;
-            case 'ArrowRight': moveFront(1); break;
-            case 'a': case 'A': moveRear(-1); break;
-            case 'd': case 'D': moveRear(1); break;
-        }
-    });
-
-    document.getElementById('btnFrontLeft').addEventListener('touchstart', (e) => { e.preventDefault(); moveFront(-1); });
-    document.getElementById('btnFrontRight').addEventListener('touchstart', (e) => { e.preventDefault(); moveFront(1); });
-    document.getElementById('btnRearLeft').addEventListener('touchstart', (e) => { e.preventDefault(); moveRear(-1); });
-    document.getElementById('btnRearRight').addEventListener('touchstart', (e) => { e.preventDefault(); moveRear(1); });
-
-    document.getElementById('btnFrontLeft').addEventListener('mousedown', () => moveFront(-1));
-    document.getElementById('btnFrontRight').addEventListener('mousedown', () => moveFront(1));
-    document.getElementById('btnRearLeft').addEventListener('mousedown', () => moveRear(-1));
-    document.getElementById('btnRearRight').addEventListener('mousedown', () => moveRear(1));
-
-    document.getElementById('startBtn').addEventListener('click', startGame);
-    document.getElementById('restartBtn').addEventListener('click', startGame);
-
-    function spawnScenery() {
-        scenery.push({ x: -2.4 - Math.random() * 0.9, z: 1.6, type: 'tree' });
-        scenery.push({ x: 2.4 + Math.random() * 0.9, z: 1.6, type: 'tree' });
-        if (Math.random() < 0.4) {
-            scenery.push({ x: -1.8, z: 1.6, type: 'pole' });
-            scenery.push({ x: 1.8, z: 1.6, type: 'pole' });
-        }
-        if (Math.random() < 0.25) {
-            scenery.push({ x: -2.0, z: 1.6, type: 'bush' });
-            scenery.push({ x: 2.0, z: 1.6, type: 'bush' });
-        }
-    }
-
-    function spawnObstacleOrCollectible() {
-        const rand = Math.random();
-        
-        if (rand < 0.45) {
-            const track = Math.floor(Math.random() * 3);
-            const types = ['rock', 'train', 'sign'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            obstacles.push({
-                track: track,
-                x: TRACK_X[track],
-                z: 1.6,
-                type: type,
-                speedOffset: type === 'train' ? 0.35 : 0
+                trainBodyObj.add(acUnit);
             });
-        } else if (rand < 0.80) {
-            if (Math.random() < 0.5) {
-                const track = Math.floor(Math.random() * 3);
-                for(let i = 0; i < 3; i++) {
-                    collectibles.push({
-                        track: track,
-                        x: TRACK_X[track],
-                        y: 0,
-                        z: 1.6 + i * 0.1,
-                        type: 'coin'
-                    });
+
+            // Pantograph (Roof Power Collector Frame)
+            const pantoMat = new THREE.MeshStandardMaterial({ color: 0x374151, metalness: 0.8 });
+            const pantoBase = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 1.0), pantoMat);
+            pantoBase.position.set(0, bodyHeight + 0.55, 0);
+            
+            const pantoArm1 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9), pantoMat);
+            pantoArm1.rotation.z = Math.PI / 4;
+            pantoArm1.position.set(-0.2, 0.4, 0);
+            const pantoArm2 = pantoArm1.clone();
+            pantoArm2.rotation.z = -Math.PI / 4;
+            pantoArm2.position.x = 0.2;
+
+            const pantoTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.04, 0.1), pantoMat);
+            pantoTop.position.set(0, 0.75, 0);
+
+            pantoBase.add(pantoArm1);
+            pantoBase.add(pantoArm2);
+            pantoBase.add(pantoTop);
+            trainBodyObj.add(pantoBase);
+
+            trainGroup.add(trainBodyObj);
+            scene.add(trainGroup);
+        }
+
+        // --- TRACK & CHUNK PROCEDURAL GENERATOR ---
+        function generateTrackChunk(startZ, length) {
+            const chunkGroup = new THREE.Group();
+
+            // Ballast Bed (Gravel base under rails)
+            const ballastGeo = new THREE.BoxGeometry(TRACK_SPACING * 3 + 1.2, 0.2, length);
+            const ballastMat = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.9 }); // Gravel color
+            const ballast = new THREE.Mesh(ballastGeo, ballastMat);
+            ballast.position.set(0, -0.1, startZ - length / 2);
+            ballast.receiveShadow = true;
+            chunkGroup.add(ballast);
+
+            // Ties/Sleepers & Steel Rails for 3 tracks
+            const tieGeo = new THREE.BoxGeometry(2.2, 0.1, 0.25);
+            const tieMat = new THREE.MeshStandardMaterial({ color: 0x44403c });
+            const railGeo = new THREE.BoxGeometry(0.08, 0.15, length);
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
+
+            TRACK_X_POS.forEach(xPos => {
+                // Sleepers
+                for (let z = 0; z < length; z += 1.2) {
+                    const tie = new THREE.Mesh(tieGeo, tieMat);
+                    tie.position.set(xPos, 0.02, startZ - z);
+                    tie.receiveShadow = true;
+                    chunkGroup.add(tie);
                 }
-            } else {
-                const gapTrack = Math.random() < 0.5 ? 0.5 : 1.5;
-                const realX = TRACK_X[Math.floor(gapTrack)] + 0.5 * (TRACK_X[1] - TRACK_X[0]);
-                for(let i = 0; i < 3; i++) {
-                    collectibles.push({
-                        track: gapTrack,
-                        x: realX,
-                        y: 12,
-                        z: 1.6 + i * 0.12,
-                        type: 'diamond'
-                    });
-                }
-            }
-        }
-    }
 
-    function spawnRampSequence() {
-        const track = Math.floor(Math.random() * 3);
-        obstacles.push({
-            track: track,
-            x: TRACK_X[track],
-            z: 1.6,
-            type: 'ramp'
-        });
-
-        for(let i = 0; i < 4; i++) {
-            collectibles.push({
-                track: track,
-                x: TRACK_X[track],
-                y: 120 + i * 16,
-                z: 1.8 + i * 0.1,
-                type: 'star'
+                // Left & Right Rails
+                [-0.75, 0.75].forEach(rOffset => {
+                    const rail = new THREE.Mesh(railGeo, railMat);
+                    rail.position.set(xPos + rOffset, 0.12, startZ - length / 2);
+                    chunkGroup.add(rail);
+                });
             });
-        }
-    }
 
-    function createParticles(x, y, z, color, count = 12) {
-        for(let i = 0; i < count; i++) {
-            particles.push({
-                x: x,
-                y: y,
-                z: z,
-                vx: (Math.random() - 0.5) * 0.06,
-                vy: Math.random() * 9 + 3,
-                vz: (Math.random() - 0.5) * 0.02,
-                life: 1.0,
-                color: color
-            });
-        }
-    }
-
-    function startGame() {
-        sound.init();
-        sound.playWhistle();
-
-        gameState = 'PLAYING';
-        score = 0;
-        distance = 0;
-        currentSpeed = baseSpeed;
-        timeElapsed = 0;
-
-        train.frontTrack = 1;
-        train.rearTrack = 1;
-        train.frontX = TRACK_X[1];
-        train.rearX = TRACK_X[1];
-        train.y = 0;
-        train.vy = 0;
-        train.isGrounded = true;
-
-        updateTrackBadges();
-
-        obstacles = [];
-        collectibles = [];
-        scenery = [];
-        particles = [];
-
-        for(let z = 0.2; z < 1.8; z += 0.15) {
-            scenery.push({ x: -2.4, z: z, type: 'tree' });
-            scenery.push({ x: 2.4, z: z, type: 'tree' });
-        }
-
-        startScreen.classList.add('hidden');
-        gameOverScreen.classList.add('hidden');
-    }
-
-    function triggerGameOver() {
-        sound.playCrash();
-        gameState = 'GAMEOVER';
-
-        const midX = (train.frontX + train.rearX) / 2;
-        createParticles(midX, train.y + 20, train.zFront, '#ff0055', 45);
-        createParticles(midX, train.y + 20, train.zFront, '#ffea00', 45);
-
-        finalScore.innerText = score;
-        finalDist.innerText = Math.floor(distance);
-        gameOverScreen.classList.remove('hidden');
-    }
-
-    function update(dt) {
-        if (gameState !== 'PLAYING') return;
-
-        timeElapsed += dt;
-        distance += (currentSpeed * dt) * 0.5;
-
-        currentSpeed = baseSpeed + Math.min(28, distance * 0.015);
-
-        scoreVal.innerText = score;
-        speedVal.innerText = Math.floor(currentSpeed * 6);
-        distVal.innerText = Math.floor(distance);
-
-        const targetFrontX = TRACK_X[train.frontTrack];
-        const targetRearX = TRACK_X[train.rearTrack];
-        train.frontX += (targetFrontX - train.frontX) * 16 * dt;
-        train.rearX += (targetRearX - train.rearX) * 16 * dt;
-
-        if (!train.isGrounded) {
-            train.y += train.vy * dt * 60;
-            train.vy -= 1.3 * dt * 60;
-            if (train.y <= 0) {
-                train.y = 0;
-                train.vy = 0;
-                train.isGrounded = true;
+            // Scenery - Trees on sides
+            const treeMeshMaster = createTreeMesh();
+            for (let z = 0; z < length; z += 12 + Math.random() * 8) {
+                [-1, 1].forEach(side => {
+                    const tree = treeMeshMaster.clone();
+                    const treeX = side * (8 + Math.random() * 12);
+                    tree.position.set(treeX, 0, startZ - z);
+                    const scale = 0.8 + Math.random() * 0.5;
+                    tree.scale.set(scale, scale, scale);
+                    chunkGroup.add(tree);
+                });
             }
+
+            tracksGroup.add(chunkGroup);
+
+            // Populate Chunk with Obstacles, Ramps & Collectibles
+            spawnChunkEntities(startZ, length);
         }
 
-        const zSpeed = (currentSpeed * 0.04) * dt;
+        // --- OBSTACLES, RAMPS & COINS GENERATION ---
+        function spawnChunkEntities(startZ, length) {
+            const step = 28; // Distance interval between entity spawn clusters
+            for (let z = startZ - 20; z > startZ - length; z -= step) {
+                const randType = Math.random();
 
-        // Update clouds
-        clouds.forEach(c => {
-            c.x -= c.speed * dt * (currentSpeed / baseSpeed);
-            if (c.x < -100) c.x = width + 100;
-        });
+                if (randType < 0.35) {
+                    // --- OBSTACLES ---
+                    const trackIndex = Math.floor(Math.random() * 3);
+                    const obsX = TRACK_X_POS[trackIndex];
+                    const obsSubtype = Math.random();
 
-        for(let i = scenery.length - 1; i >= 0; i--) {
-            scenery[i].z -= zSpeed;
-            if (scenery[i].z < 0) scenery.splice(i, 1);
-        }
+                    if (obsSubtype < 0.35) {
+                        // 1. Rock Boulder
+                        const rockGeo = new THREE.DodecahedronGeometry(1.2, 1);
+                        const rockMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8 });
+                        const rock = new THREE.Mesh(rockGeo, rockMat);
+                        rock.position.set(obsX, 0.8, z);
+                        rock.rotation.set(Math.random(), Math.random(), Math.random());
+                        rock.castShadow = true;
+                        rock.userData = { type: 'obstacle', radius: 1.1 };
+                        scene.add(rock);
+                        obstacles.push(rock);
+                    } else if (obsSubtype < 0.7) {
+                        // 2. Red "X" No Entry Signboard (Exact replica)
+                        const signGroup = new THREE.Group();
+                        
+                        // Posts
+                        const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 2);
+                        const postMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+                        const p1 = new THREE.Mesh(postGeo, postMat);
+                        p1.position.set(-0.9, 1, 0);
+                        const p2 = p1.clone();
+                        p2.position.x = 0.9;
+                        signGroup.add(p1);
+                        signGroup.add(p2);
 
-        if (Math.random() < 0.45) spawnScenery();
+                        // White Board
+                        const boardGeo = new THREE.BoxGeometry(2.0, 1.2, 0.1);
+                        const boardMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                        const board = new THREE.Mesh(boardGeo, boardMat);
+                        board.position.set(0, 1.6, 0);
+                        signGroup.add(board);
 
-        spawnTimer += dt;
-        if (spawnTimer > Math.max(0.55, 1.7 - distance * 0.001)) {
-            spawnTimer = 0;
-            if (Math.random() < 0.28) {
-                spawnRampSequence();
-            } else {
-                spawnObstacleOrCollectible();
-            }
-        }
+                        // Red "X" Marker Lines
+                        const xMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+                        const xLine1 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 0.12), xMat);
+                        xLine1.rotation.z = Math.PI / 4;
+                        xLine1.position.set(0, 1.6, 0.01);
+                        const xLine2 = xLine1.clone();
+                        xLine2.rotation.z = -Math.PI / 4;
+                        signGroup.add(xLine1);
+                        signGroup.add(xLine2);
 
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-            const obs = obstacles[i];
-            obs.z -= zSpeed + (obs.speedOffset || 0) * dt;
+                        signGroup.position.set(obsX, 0, z);
+                        signGroup.userData = { type: 'obstacle', radius: 1.1 };
+                        scene.add(signGroup);
+                        obstacles.push(signGroup);
+                    } else {
+                        // 3. Oncoming Train Obstacle
+                        const enemyTrain = createEnemyTrainMesh();
+                        enemyTrain.position.set(obsX, 0, z);
+                        enemyTrain.userData = { type: 'obstacle', radius: 1.3, isMoving: true, speed: 12 };
+                        scene.add(enemyTrain);
+                        obstacles.push(enemyTrain);
+                    }
+                } else if (randType < 0.55) {
+                    // --- JUMP RAMP ---
+                    const trackIndex = Math.floor(Math.random() * 3);
+                    const rampX = TRACK_X_POS[trackIndex];
 
-            if (obs.z > train.zRear - 0.05 && obs.z < train.zFront + 0.05) {
-                const ratio = (obs.z - train.zRear) / (train.zFront - train.zRear);
-                const clampedRatio = Math.max(0, Math.min(1, ratio));
-                const trainXAtZ = train.rearX + clampedRatio * (train.frontX - train.rearX);
+                    const rampGeo = new THREE.BoxGeometry(2.0, 1.2, 6.0);
+                    const rampMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4 }); // Yellow ramp
+                    const ramp = new THREE.Mesh(rampGeo, rampMat);
+                    ramp.rotation.x = Math.PI / 12; // Incline angle
+                    ramp.position.set(rampX, 0.2, z);
+                    ramp.castShadow = true;
+                    ramp.userData = { type: 'ramp', zStart: z + 3, zEnd: z - 3, x: rampX };
+                    scene.add(ramp);
+                    ramps.push(ramp);
 
-                if (obs.type === 'ramp') {
-                    if (Math.abs(trainXAtZ - obs.x) < 0.45 && train.isGrounded) {
-                        const isTilted = Math.abs(train.frontTrack - train.rearTrack) > 0;
-                        const jumpPower = isTilted ? 35 : 24;
-                        train.vy = jumpPower;
-                        train.isGrounded = false;
-                        sound.playJump();
-                        createParticles(trainXAtZ, 0, obs.z, '#00f0ff', 18);
+                    // High Airborne Coins following ramp
+                    for (let cZ = z - 4; cZ >= z - 18; cZ -= 3.5) {
+                        const height = 3.5 + Math.sin((z - cZ) / 14 * Math.PI) * 4.5;
+                        spawnCoin(rampX, height, cZ);
                     }
                 } else {
-                    if (train.y < 35) {
-                        if (Math.abs(trainXAtZ - obs.x) < 0.4) {
-                            triggerGameOver();
-                            return;
+                    // --- COIN COLLECTIBLES ---
+                    const coinLayout = Math.random();
+
+                    if (coinLayout < 0.5) {
+                        // Pattern A: Centered directly on track
+                        const trackIndex = Math.floor(Math.random() * 3);
+                        for (let cZ = z; cZ > z - 12; cZ -= 3) {
+                            spawnCoin(TRACK_X_POS[trackIndex], 1.2, cZ);
+                        }
+                    } else {
+                        // Pattern B: Placed BETWEEN tracks (Requires 斜跨 Diagonal Straddle)
+                        const betweenX = Math.random() < 0.5 ? -TRACK_SPACING / 2 : TRACK_SPACING / 2;
+                        for (let cZ = z; cZ > z - 12; cZ -= 3) {
+                            spawnCoin(betweenX, 1.2, cZ);
                         }
                     }
                 }
             }
-
-            if (obs.z < 0) obstacles.splice(i, 1);
         }
 
-        for (let i = collectibles.length - 1; i >= 0; i--) {
-            const item = collectibles[i];
-            item.z -= zSpeed;
+        // Oncoming Train Mesh Helper
+        function createEnemyTrainMesh() {
+            const group = new THREE.Group();
+            const bodyGeo = new THREE.BoxGeometry(2.2, 2.7, 8.0);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }); // Red body
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1.85;
+            group.add(body);
 
-            if (item.z > train.zRear - 0.05 && item.z < train.zFront + 0.05) {
-                const ratio = (item.z - train.zRear) / (train.zFront - train.zRear);
-                const clampedRatio = Math.max(0, Math.min(1, ratio));
-                const trainXAtZ = train.rearX + clampedRatio * (train.frontX - train.rearX);
+            const windowMat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
+            const win = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 0.1), windowMat);
+            win.position.set(0, 2.2, 4.01);
+            group.add(win);
 
-                const dx = Math.abs(trainXAtZ - item.x);
-                const dy = Math.abs(train.y - item.y);
+            return group;
+        }
 
-                if (dx < 0.4 && dy < 50) {
-                    if (item.type === 'coin') {
-                        score += 100;
-                        sound.playCoin();
-                    } else if (item.type === 'diamond') {
-                        score += 300;
-                        sound.playCoin();
-                    } else if (item.type === 'star') {
-                        score += 500;
-                        sound.playStar();
+        // Coin Spawner Helper (Glow Rhombus / Cube)
+        function spawnCoin(x, y, z) {
+            const coinGeo = new THREE.OctahedronGeometry(0.5, 0);
+            const coinMat = new THREE.MeshStandardMaterial({
+                color: 0xfacc15,
+                emissive: 0xeab308,
+                emissiveIntensity: 0.6,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const coin = new THREE.Mesh(coinGeo, coinMat);
+            coin.position.set(x, y, z);
+            coin.castShadow = true;
+            coin.userData = { type: 'coin' };
+            scene.add(coin);
+            coins.push(coin);
+        }
+
+        // --- CONTROLS & INPUT HANDLING ---
+        function setupControls() {
+            // Keyboard Listener
+            window.addEventListener('keydown', (e) => {
+                if (!isPlaying) return;
+
+                const key = e.key.toLowerCase();
+
+                // Front Bogie Movement (A/D or Left/Right Arrow)
+                if (key === 'a' || e.key === 'ArrowLeft') {
+                    if (frontTargetLane > -1) frontTargetLane--;
+                } else if (key === 'd' || e.key === 'ArrowRight') {
+                    if (frontTargetLane < 1) frontTargetLane++;
+                }
+
+                // Rear Bogie Movement (Q/E, Z/X, or Down Arrow)
+                if (key === 'q' || key === 'z') {
+                    if (rearTargetLane > -1) rearTargetLane--;
+                } else if (key === 'e' || key === 'x' || e.key === 'ArrowDown') {
+                    if (rearTargetLane < 1) rearTargetLane++;
+                }
+            });
+
+            // Touch UI Buttons Listeners
+            document.getElementById('btn-front-left').addEventListener('click', () => { if (isPlaying && frontTargetLane > -1) frontTargetLane--; });
+            document.getElementById('btn-front-right').addEventListener('click', () => { if (isPlaying && frontTargetLane < 1) frontTargetLane++; });
+            document.getElementById('btn-rear-left').addEventListener('click', () => { if (isPlaying && rearTargetLane > -1) rearTargetLane--; });
+            document.getElementById('btn-rear-right').addEventListener('click', () => { if (isPlaying && rearTargetLane < 1) rearTargetLane++; });
+
+            // Start Button Click
+            startBtn.addEventListener('click', startGame);
+        }
+
+        // --- GAME LOOP & UPDATES ---
+        function startGame() {
+            // Reset Game Variables
+            score = 0;
+            distanceTraveled = 0;
+            currentSpeed = INITIAL_SPEED;
+            frontTargetLane = 0;
+            rearTargetLane = 0;
+            frontX = 0;
+            rearX = 0;
+            trainY = 0;
+            trainVY = 0;
+            isGrounded = true;
+            spawnZ = -50;
+
+            // Clear Existing Entities
+            obstacles.forEach(o => scene.remove(o));
+            coins.forEach(c => scene.remove(c));
+            ramps.forEach(r => scene.remove(r));
+            tracksGroup.clear();
+
+            obstacles = [];
+            coins = [];
+            ramps = [];
+
+            // Spawn Initial Track Chunks
+            for (let i = 0; i < 4; i++) {
+                generateTrackChunk(spawnZ, SPAWN_CHUNK_SIZE);
+                spawnZ -= SPAWN_CHUNK_SIZE;
+            }
+
+            // UI Update
+            scoreEl.innerText = '0';
+            speedEl.innerText = Math.round(currentSpeed);
+            distanceEl.innerText = '0 m';
+            gameModal.classList.add('hidden');
+
+            isPlaying = true;
+            clock.start();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+
+            // High score check
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('acrobatic_train_highscore', highScore);
+                highScoreEl.innerText = highScore;
+            }
+
+            // Modal text update
+            modalTitle.innerText = "電車脫軌 GAME OVER";
+            modalSubtitle.innerHTML = `最終得分：<b class="text-amber-400 text-lg">${score}</b> | 行駛距離：<b class="text-emerald-400 text-lg">${Math.floor(distanceTraveled)}m</b>`;
+            startBtn.innerText = "重新開始 RESTART";
+            gameModal.classList.remove('hidden');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.1);
+
+            if (isPlaying) {
+                updateTrainPhysics(delta);
+                updateWorldAndEntities(delta);
+                checkCollisions();
+                updateCamera();
+            } else if (trainGroup) {
+                // Subtle idle rotation menu effect
+                trainGroup.rotation.y = Math.sin(Date.now() * 0.001) * 0.05;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- TRAIN & BOGIE PHYSICS ENGINE ---
+        function updateTrainPhysics(delta) {
+            // Speed progression
+            currentSpeed = Math.min(MAX_SPEED, currentSpeed + SPEED_INCREMENT * delta);
+            const moveDistance = currentSpeed * delta;
+            distanceTraveled += moveDistance;
+
+            // HUD UI Update
+            speedEl.innerText = Math.round(currentSpeed * 2.2); // Speed scale display km/h
+            distanceEl.innerText = `${Math.floor(distanceTraveled)} m`;
+
+            // Interpolate Front & Rear Bogie Lateral (X) Positions smoothly
+            const frontTargetX = TRACK_X_POS[frontTargetLane + 1];
+            const rearTargetX = TRACK_X_POS[rearTargetLane + 1];
+
+            const lerpSpeed = 8.5 * delta;
+            frontX += (frontTargetX - frontX) * lerpSpeed;
+            rearX += (rearTargetX - rearX) * lerpSpeed;
+
+            // Update Bogie Positions in Local/World Space
+            frontBogieObj.position.x = frontX;
+            rearBogieObj.position.x = rearX;
+
+            // Calculate Train Center Position & Body Pitch/Yaw Angle (斜跨姿態)
+            const centerX = (frontX + rearX) / 2;
+            const deltaX = frontX - rearX;
+            const yawAngle = Math.atan2(deltaX, BOGIE_DISTANCE);
+
+            // Train Vertical Jump Physics
+            if (!isGrounded) {
+                trainVY -= GRAVITY * delta;
+                trainY += trainVY * delta;
+
+                if (trainY <= 0) {
+                    trainY = 0;
+                    trainVY = 0;
+                    isGrounded = true;
+                }
+            }
+
+            // Check Ramp Launch Interactions
+            ramps.forEach(ramp => {
+                const rZ = ramp.position.z;
+                // If train is near ramp z position and aligned on track
+                if (Math.abs(rZ) < 2.0 && Math.abs(centerX - ramp.userData.x) < 1.2 && isGrounded) {
+                    // Trigger Jump!
+                    trainVY = JUMP_VELOCITY;
+                    isGrounded = false;
+                }
+            });
+
+            // Set Main Train Group Translation & Rotation
+            trainGroup.position.x = centerX;
+            trainGroup.position.y = trainY;
+
+            // Set Body Orientation Angle relative to tracks
+            trainBodyObj.rotation.y = yawAngle;
+
+            // Slight Roll tilt dynamic when straddling diagonally
+            trainBodyObj.rotation.z = -deltaX * 0.06;
+            trainBodyObj.rotation.x = isGrounded ? 0 : -trainVY * 0.015; // Pitch angle during flight
+        }
+
+        // --- WORLD CHUNK & ENTITIES SCROLLING ---
+        function updateWorldAndEntities(delta) {
+            const moveDist = currentSpeed * delta;
+
+            // Move Track Chunks towards viewer (+Z)
+            tracksGroup.children.forEach(chunk => {
+                chunk.position.z += moveDist;
+            });
+
+            // Move Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.position.z += moveDist;
+
+                // Move oncoming enemy train faster
+                if (obs.userData.isMoving) {
+                    obs.position.z += obs.userData.speed * delta;
+                }
+
+                // Despawn behind camera
+                if (obs.position.z > 20) {
+                    scene.remove(obs);
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Move Ramps
+            for (let i = ramps.length - 1; i >= 0; i--) {
+                const ramp = ramps[i];
+                ramp.position.z += moveDist;
+                if (ramp.position.z > 20) {
+                    scene.remove(ramp);
+                    ramps.splice(i, 1);
+                }
+            }
+
+            // Move & Animate Coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                coin.position.z += moveDist;
+                coin.rotation.y += 3.0 * delta; // Rotation spin
+
+                if (coin.position.z > 20) {
+                    scene.remove(coin);
+                    coins.splice(i, 1);
+                }
+            }
+
+            // Procedural Infinite Track Chunk Spawning
+            if (spawnZ + tracksGroup.position.z > -RENDER_DISTANCE) {
+                generateTrackChunk(spawnZ, SPAWN_CHUNK_SIZE);
+                spawnZ -= SPAWN_CHUNK_SIZE;
+            }
+        }
+
+        // --- COLLISION DETECTION & SCORE PICKUP ---
+        function checkCollisions() {
+            // Train Key Collision Points (Front Bogie, Center, Rear Bogie)
+            const frontWorldPos = new THREE.Vector3(frontX, trainY + 1.0, -BOGIE_DISTANCE / 2);
+            const rearWorldPos = new THREE.Vector3(rearX, trainY + 1.0, BOGIE_DISTANCE / 2);
+            const centerWorldPos = new THREE.Vector3((frontX + rearX) / 2, trainY + 1.0, 0);
+
+            // 1. Obstacle Collision Check
+            for (let obs of obstacles) {
+                const obsPos = obs.position;
+                const radius = obs.userData.radius || 1.0;
+
+                // Only check collision when obstacle is near the train Z range
+                if (Math.abs(obsPos.z) < 5.0) {
+                    // Check distance against front, center, and rear of train
+                    const dFront = frontWorldPos.distanceTo(obsPos);
+                    const dCenter = centerWorldPos.distanceTo(obsPos);
+                    const dRear = rearWorldPos.distanceTo(obsPos);
+
+                    if (dFront < radius + 0.8 || dCenter < radius + 0.9 || dRear < radius + 0.8) {
+                        gameOver();
+                        return;
                     }
-                    createParticles(item.x, item.y, item.z, item.type === 'star' ? '#ffea00' : '#00f0ff', 10);
-                    collectibles.splice(i, 1);
-                    continue;
                 }
             }
 
-            if (item.z < 0) collectibles.splice(i, 1);
-        }
+            // 2. Coin Collection Check
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                const cPos = coin.position;
 
-        for(let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.z -= zSpeed;
-            p.life -= dt * 2.2;
-            if (p.life <= 0 || p.z < 0) particles.splice(i, 1);
-        }
-    }
+                if (Math.abs(cPos.z) < 4.0) {
+                    // Check against full train body segment
+                    const dFront = frontWorldPos.distanceTo(cPos);
+                    const dCenter = centerWorldPos.distanceTo(cPos);
+                    const dRear = rearWorldPos.distanceTo(cPos);
 
-    function render() {
-        ctx.clearRect(0, 0, width, height);
+                    if (dFront < 1.6 || dCenter < 1.6 || dRear < 1.6) {
+                        // Collect Coin!
+                        score += 10;
+                        scoreEl.innerText = score;
 
-        // --- High-Clarity Multi-layer Sky ---
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-        skyGrad.addColorStop(0, '#020817');
-        skyGrad.addColorStop(0.5, '#0b192c');
-        skyGrad.addColorStop(1, '#1e3a5f');
-        ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, width, horizonY);
+                        // Create Pickup Sparkle Visual Effect
+                        createPickupEffect(cPos.x, cPos.y, cPos.z);
 
-        // Radiant Sun Glow
-        ctx.save();
-        const sunGrad = ctx.createRadialGradient(width * 0.5, horizonY - 10, 10, width * 0.5, horizonY - 10, 150);
-        sunGrad.addColorStop(0, 'rgba(255, 220, 100, 0.5)');
-        sunGrad.addColorStop(0.5, 'rgba(255, 120, 50, 0.2)');
-        sunGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = sunGrad;
-        ctx.beginPath();
-        ctx.arc(width * 0.5, horizonY - 10, 150, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Parallax Clouds
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-        clouds.forEach(c => {
-            ctx.beginPath();
-            ctx.arc(c.x, c.y, 25 * c.scale, 0, Math.PI * 2);
-            ctx.arc(c.x + 18 * c.scale, c.y - 8 * c.scale, 20 * c.scale, 0, Math.PI * 2);
-            ctx.arc(c.x + 35 * c.scale, c.y, 22 * c.scale, 0, Math.PI * 2);
-            ctx.fill();
-        });
-
-        // Distant Mountain Ranges (Layer 1 - Dark)
-        ctx.fillStyle = '#102238';
-        ctx.beginPath();
-        ctx.moveTo(0, horizonY);
-        for (let x = 0; x <= width; x += 50) {
-            const h = Math.sin(x * 0.008 + 1) * 35 + Math.cos(x * 0.015) * 20;
-            ctx.lineTo(x, horizonY - 25 - h);
-        }
-        ctx.lineTo(width, horizonY);
-        ctx.fill();
-
-        // Closer Rolling Hills (Layer 2 - Vibrant Greenish)
-        ctx.fillStyle = '#1b3b2b';
-        ctx.beginPath();
-        ctx.moveTo(0, horizonY);
-        for (let x = 0; x <= width; x += 40) {
-            const h = Math.sin(x * 0.012) * 20 + Math.sin(x * 0.025) * 10;
-            ctx.lineTo(x, horizonY - 10 - h);
-        }
-        ctx.lineTo(width, horizonY);
-        ctx.fill();
-
-        // --- Grassland Environment Ground ---
-        const groundGrad = ctx.createLinearGradient(0, horizonY, 0, height);
-        groundGrad.addColorStop(0, '#2d6a4f');
-        groundGrad.addColorStop(0.3, '#40916c');
-        groundGrad.addColorStop(1, '#1b4332');
-        ctx.fillStyle = groundGrad;
-        ctx.fillRect(0, horizonY, width, height - horizonY);
-
-        // Ground Glowing Horizon Grid Lines
-        ctx.strokeStyle = 'rgba(82, 183, 136, 0.25)';
-        ctx.lineWidth = 1;
-        for (let i = -4; i <= 4; i++) {
-            const p1 = project(i * 1.2, 0, 0.02);
-            const p2 = project(i * 3.5, 0, 1.8);
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-        }
-
-        // --- Render Parallel 3 Railway Tracks ---
-        for (let t = 0; t < 3; t++) {
-            const trackX = TRACK_X[t];
-            const pNearLeft = project(trackX - 0.24, 0, 0.02);
-            const pNearRight = project(trackX + 0.24, 0, 0.02);
-            const pFarLeft = project(trackX - 0.24, 0, 1.8);
-            const pFarRight = project(trackX + 0.24, 0, 1.8);
-
-            // Ballast
-            ctx.fillStyle = '#2b2d42';
-            ctx.beginPath();
-            ctx.moveTo(pFarLeft.x, pFarLeft.y);
-            ctx.lineTo(pFarRight.x, pFarRight.y);
-            ctx.lineTo(pNearRight.x, pNearRight.y);
-            ctx.lineTo(pNearLeft.x, pNearLeft.y);
-            ctx.fill();
-
-            // Wooden Ties
-            ctx.strokeStyle = '#1d1e2c';
-            ctx.lineWidth = 3;
-            for (let z = 0.05; z < 1.8; z += 0.05) {
-                const scrollZ = (z - (distance * 0.005) % 0.05);
-                if (scrollZ <= 0) continue;
-                const p1 = project(trackX - 0.22, 0, scrollZ);
-                const p2 = project(trackX + 0.22, 0, scrollZ);
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.stroke();
-            }
-
-            // Steel Rails with Specular Shine
-            const railNearL = project(trackX - 0.16, 0, 0.02);
-            const railNearR = project(trackX + 0.16, 0, 0.02);
-            const railFarL = project(trackX - 0.16, 0, 1.8);
-            const railFarR = project(trackX + 0.16, 0, 1.8);
-
-            ctx.strokeStyle = '#e0fbfc';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(railFarL.x, railFarL.y); ctx.lineTo(railNearL.x, railNearL.y);
-            ctx.moveTo(railFarR.x, railFarR.y); ctx.lineTo(railNearR.x, railNearR.y);
-            ctx.stroke();
-        }
-
-        // Gap Acrobatic Guidelines
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
-        ctx.setLineDash([10, 10]);
-        for (let gapX of [-0.5, 0.5]) {
-            const p1 = project(gapX, 0, 0.02);
-            const p2 = project(gapX, 0, 1.8);
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-        }
-        ctx.setLineDash([]);
-
-        // --- Entity Sorting & Rendering ---
-        let renderables = [];
-
-        scenery.forEach(s => renderables.push({ z: s.z, type: 'scenery', obj: s }));
-        obstacles.forEach(o => renderables.push({ z: o.z, type: 'obstacle', obj: o }));
-        collectibles.forEach(c => renderables.push({ z: c.z, type: 'collectible', obj: c }));
-        particles.forEach(p => renderables.push({ z: p.z, type: 'particle', obj: p }));
-
-        renderables.sort((a, b) => b.z - a.z);
-
-        let trainRendered = false;
-
-        renderables.forEach(item => {
-            if (!trainRendered && item.z < train.zFront) {
-                render3DTrain();
-                trainRendered = true;
-            }
-
-            const z = item.z;
-
-            if (item.type === 'scenery') {
-                const s = item.obj;
-                const p = project(s.x, 0, z);
-                if (s.type === 'tree') {
-                    ctx.fillStyle = '#4a3022';
-                    ctx.fillRect(p.x - 5 * p.scale, p.y - 25 * p.scale, 10 * p.scale, 25 * p.scale);
-                    ctx.fillStyle = '#1b4332';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y - 35 * p.scale, 24 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#2d6a4f';
-                    ctx.beginPath();
-                    ctx.arc(p.x + 4 * p.scale, p.y - 38 * p.scale, 16 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (s.type === 'bush') {
-                    ctx.fillStyle = '#52b788';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y - 10 * p.scale, 14 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (s.type === 'pole') {
-                    ctx.strokeStyle = '#6c757d';
-                    ctx.lineWidth = 3.5 * p.scale;
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p.x, p.y - 55 * p.scale);
-                    ctx.moveTo(p.x - 14 * p.scale, p.y - 44 * p.scale);
-                    ctx.lineTo(p.x + 14 * p.scale, p.y - 44 * p.scale);
-                    ctx.stroke();
+                        // Remove Coin
+                        scene.remove(coin);
+                        coins.splice(i, 1);
+                    }
                 }
-            } else if (item.type === 'obstacle') {
-                const o = item.obj;
-                const p = project(o.x, 0, z);
-
-                if (o.type === 'rock') {
-                    ctx.fillStyle = '#495057';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y - 12 * p.scale, 18 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#adb5bd';
-                    ctx.beginPath();
-                    ctx.arc(p.x - 5 * p.scale, p.y - 16 * p.scale, 8 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (o.type === 'sign') {
-                    ctx.fillStyle = '#343a40';
-                    ctx.fillRect(p.x - 2 * p.scale, p.y - 48 * p.scale, 4 * p.scale, 48 * p.scale);
-
-                    ctx.fillStyle = '#e63946';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y - 48 * p.scale, 19 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 3 * p.scale;
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(p.x - 13 * p.scale, p.y - 51 * p.scale, 26 * p.scale, 6 * p.scale);
-                } else if (o.type === 'train') {
-                    const w = 38 * p.scale;
-                    const h = 42 * p.scale;
-                    ctx.fillStyle = '#e63946';
-                    ctx.fillRect(p.x - w/2, p.y - h, w, h);
-                    ctx.fillStyle = '#f1faee';
-                    ctx.fillRect(p.x - w/2 + 5 * p.scale, p.y - h + 6 * p.scale, w - 10 * p.scale, 12 * p.scale);
-
-                    // Headlights Glow
-                    ctx.fillStyle = '#ffb703';
-                    ctx.beginPath();
-                    ctx.arc(p.x - w/4, p.y - 8 * p.scale, 4.5 * p.scale, 0, Math.PI*2);
-                    ctx.arc(p.x + w/4, p.y - 8 * p.scale, 4.5 * p.scale, 0, Math.PI*2);
-                    ctx.fill();
-                } else if (o.type === 'ramp') {
-                    const w = 45 * p.scale;
-                    const h = 20 * p.scale;
-                    ctx.fillStyle = '#ffb703';
-                    ctx.beginPath();
-                    ctx.moveTo(p.x - w/2, p.y);
-                    ctx.lineTo(p.x + w/2, p.y);
-                    ctx.lineTo(p.x + w/2, p.y - h);
-                    ctx.lineTo(p.x - w/2, p.y - h);
-                    ctx.fill();
-                    ctx.fillStyle = '#fb8500';
-                    ctx.beginPath();
-                    ctx.moveTo(p.x - w/2, p.y);
-                    ctx.lineTo(p.x + w/2, p.y);
-                    ctx.lineTo(p.x, p.y - h - 6 * p.scale);
-                    ctx.fill();
-                }
-            } else if (item.type === 'collectible') {
-                const c = item.obj;
-                const p = project(c.x, c.y, z);
-
-                if (c.type === 'coin') {
-                    ctx.fillStyle = '#ffb703';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y - 8 * p.scale, 11 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2 * p.scale;
-                    ctx.stroke();
-                } else if (c.type === 'diamond') {
-                    const sz = 13 * p.scale;
-                    ctx.fillStyle = '#00f0ff';
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y - 10 * p.scale - sz);
-                    ctx.lineTo(p.x + sz, p.y - 10 * p.scale);
-                    ctx.lineTo(p.x, p.y - 10 * p.scale + sz);
-                    ctx.lineTo(p.x - sz, p.y - 10 * p.scale);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2 * p.scale;
-                    ctx.stroke();
-                } else if (c.type === 'star') {
-                    ctx.fillStyle = '#ffea00';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 15 * p.scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2 * p.scale;
-                    ctx.stroke();
-                }
-            } else if (item.type === 'particle') {
-                const pt = item.obj;
-                const p = project(pt.x, pt.y, pt.z);
-                ctx.fillStyle = pt.color;
-                ctx.globalAlpha = Math.max(0, pt.life);
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 4.5 * p.scale, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = 1.0;
             }
-        });
-
-        if (!trainRendered) {
-            render3DTrain();
-        }
-    }
-
-    // --- 3D Enhanced Procedural Polygonal Train Model ---
-    function render3DTrain() {
-        const pFront = project(train.frontX, train.y, train.zFront);
-        const pRear = project(train.rearX, train.y, train.zRear);
-
-        const dx = pFront.x - pRear.x;
-        const dy = pFront.y - pRear.y;
-        const screenAngle = Math.atan2(dy, dx);
-
-        const midX = (pFront.x + pRear.x) / 2;
-        const midY = (pFront.y + pRear.y) / 2;
-        const bodyLength = Math.hypot(dx, dy) + 36 * pFront.scale;
-
-        ctx.save();
-        ctx.translate(midX, midY);
-        ctx.rotate(screenAngle);
-
-        const halfL = bodyLength / 2;
-        const trainH = 34 * pFront.scale;
-        const trainW = 32 * pFront.scale;
-
-        // Ground Contact Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.beginPath();
-        ctx.ellipse(0, 20 * pFront.scale, halfL + 6, 14 * pFront.scale, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 3D Cuboid Body: Side Face (Darker metallic blue)
-        ctx.fillStyle = '#023e8a';
-        ctx.fillRect(-halfL, -trainH, bodyLength, trainH);
-
-        // 3D Cuboid Body: Top Face (Bright Cyan Gradient for 3D volumetric feel)
-        const topGrad = ctx.createLinearGradient(-halfL, 0, halfL, 0);
-        topGrad.addColorStop(0, '#00b4d8');
-        topGrad.addColorStop(0.5, '#90e0ef');
-        topGrad.addColorStop(1, '#0077b6');
-        ctx.fillStyle = topGrad;
-        ctx.beginPath();
-        ctx.moveTo(-halfL, -trainH);
-        ctx.lineTo(-halfL + 8, -trainH - 12 * pFront.scale);
-        ctx.lineTo(halfL - 8, -trainH - 12 * pFront.scale);
-        ctx.lineTo(halfL, -trainH);
-        ctx.closePath();
-        ctx.fill();
-
-        // Futuristic Neon Accent Stripe along center
-        ctx.fillStyle = '#ff0055';
-        ctx.fillRect(-halfL + 4, -trainH - 6 * pFront.scale, bodyLength - 8, 4 * pFront.scale);
-
-        // Glass Windows with Reflection
-        ctx.fillStyle = '#caf0f8';
-        const numWins = 4;
-        const winW = (bodyLength - 32) / numWins;
-        for (let i = 0; i < numWins; i++) {
-            ctx.fillRect(-halfL + 16 + i * winW, -trainH + 6 * pFront.scale, winW - 8, 12 * pFront.scale);
-            // Window highlight
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.fillRect(-halfL + 18 + i * winW, -trainH + 8 * pFront.scale, (winW - 8) * 0.4, 4 * pFront.scale);
-            ctx.fillStyle = '#caf0f8';
         }
 
-        // Front Headlight Glow Cone
-        ctx.fillStyle = '#ffea00';
-        ctx.beginPath();
-        ctx.arc(halfL - 4, -trainH / 2, 5 * pFront.scale, 0, Math.PI * 2);
-        ctx.fill();
+        // Collect Sparkle Particle Effect
+        function createPickupEffect(x, y, z) {
+            const particleCount = 8;
+            const pGeo = new THREE.SphereGeometry(0.12, 4, 4);
+            const pMat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
 
-        ctx.restore();
+            for (let i = 0; i < particleCount; i++) {
+                const p = new THREE.Mesh(pGeo, pMat);
+                p.position.set(x, y, z);
+                scene.add(p);
 
-        // 3D Wheel Bogies (Front & Rear Independent Sets)
-        render3DWheelSet(pFront.x, pFront.y, pFront.scale, '#ff0055');
-        render3DWheelSet(pRear.x, pRear.y, pRear.scale, '#00f0ff');
-    }
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 6,
+                    Math.random() * 6 + 2,
+                    (Math.random() - 0.5) * 6
+                );
 
-    function render3DWheelSet(x, y, scale, rimColor) {
-        ctx.save();
-        ctx.translate(x, y);
+                // Animate particle burst
+                let startTime = Date.now();
+                const anim = () => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    if (elapsed < 0.4) {
+                        p.position.addScaledVector(velocity, 0.016);
+                        p.scale.multiplyScalar(0.92);
+                        requestAnimationFrame(anim);
+                    } else {
+                        scene.remove(p);
+                    }
+                };
+                anim();
+            }
+        }
 
-        // Metallic Bogie Chassis
-        ctx.fillStyle = '#212529';
-        ctx.fillRect(-20 * scale, -8 * scale, 40 * scale, 8 * scale);
+        // --- CAMERA SMOOTH FOLLOW ---
+        function updateCamera() {
+            const trainCenterX = trainGroup.position.x;
+            const targetCamX = trainCenterX * 0.45; // Subtle camera shift tracking body tilt
+            const targetCamY = 6.5 + trainY * 0.5;
+            const targetCamZ = 12.5;
 
-        // Left & Right 3D Wheels
-        [-18, 18].forEach(wx => {
-            ctx.fillStyle = '#343a40';
-            ctx.beginPath();
-            ctx.arc(wx * scale, -4 * scale, 7.5 * scale, 0, Math.PI * 2);
-            ctx.fill();
+            // Smooth Dampening Interpolation
+            camera.position.x += (targetCamX - camera.position.x) * 0.1;
+            camera.position.y += (targetCamY - camera.position.y) * 0.1;
+            camera.position.z = targetCamZ;
 
-            // Rim
-            ctx.fillStyle = rimColor;
-            ctx.beginPath();
-            ctx.arc(wx * scale, -4 * scale, 4 * scale, 0, Math.PI * 2);
-            ctx.fill();
+            camera.lookAt(trainCenterX * 0.2, 1.8 + trainY * 0.3, -10);
+        }
 
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1.5 * scale;
-            ctx.stroke();
-        });
+        // Screen Resize Listener
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
 
-        ctx.restore();
-    }
-
-    // --- Main Game Loop ---
-    let lastTime = performance.now();
-    function gameLoop(now) {
-        const dt = Math.min(0.1, (now - lastTime) / 1000);
-        lastTime = now;
-
-        update(dt);
-        render();
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    requestAnimationFrame(gameLoop);
-</script>
+        // Initialize on load
+        window.onload = init;
+    </script>
 </body>
 </html>
