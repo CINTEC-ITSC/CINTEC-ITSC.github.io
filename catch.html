@@ -454,15 +454,21 @@ finalScoreEl.innerText = `你夾到 ${score} 隻南瓜!`;
 gameOverScreen.style.display = 'flex';
 }
 
+const FPS = 30;
+const frameTimeMS = 1000 / FPS;
+let lastFrameTime = new Date();
 /**
 * =========================================
 * MAIN GAME LOOP & LOGIC
 * =========================================
 */
 function loop() {
-requestAnimationFrame(loop);
-update();
-draw();
+    requestAnimationFrame(loop);
+    if(new Date() - lastFrameTime >= frameTimeMS){
+        update();
+        draw();
+        lastFrameTime = new Date();
+    }
 }
 
 function update() {
@@ -712,4 +718,3 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
-
