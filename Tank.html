@@ -16,52 +16,244 @@
             touch-action: none;
         }
         canvas {
+            display: block;
+            width: min(600px, calc(100vw - 32px), calc(100dvh - 300px));
+            height: auto;
             image-rendering: pixelated;
             box-shadow: 0 0 25px rgba(138, 43, 226, 0.5);
+        }
+
+        #main-menu {
+            max-height: calc(100dvh - 32px);
+            overflow-y: auto;
+        }
+
+        #game-container {
+            width: min(100%, 600px);
+        }
+
+        #game-container > div:first-child {
+            width: 100%;
+            padding: 12px;
+            font-size: 12px;
+            gap: 8px;
+        }
+
+        #game-container > div:first-child > div {
+            min-width: 0;
+            font-size: 12px;
+        }
+
+        #game-container > div:first-child span {
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        #timer {
+            font-size: 24px !important;
+        }
+
+        #hud-level {
+            font-size: 12px !important;
+        }
+
+        #game-container > div:first-child div {
+            overflow-wrap: anywhere;
+        }
+
+        #game-container > div:nth-child(2) {
+            width: 100%;
+        }
+
+        #joystick-base,
+        #floating-btn {
+            width: clamp(76px, 13vw, 104px);
+            height: clamp(76px, 13vw, 104px);
+        }
+
+        #joystick-stick,
+        #floating-btn > div {
+            width: clamp(38px, 7vw, 56px);
+            height: clamp(38px, 7vw, 56px);
+        }
+
+        #modal-title,
+        #pause-overlay h2 {
+            font-size: clamp(20px, 6vw, 42px) !important;
+        }
+
+        #modal-message,
+        #pause-overlay p {
+            font-size: clamp(13px, 3vw, 22px) !important;
+        }
+
+        #modal-btn {
+            padding: 14px 20px;
+            font-size: clamp(12px, 2.8vw, 20px) !important;
+        }
+
+        @media (orientation: portrait) and (min-width: 600px) and (max-width: 1024px) {
+            body {
+                padding: 12px;
+            }
+
+            #main-menu {
+                width: min(100%, 760px);
+                padding: clamp(24px, 5vw, 44px);
+            }
+
+            #main-menu h1 {
+                font-size: clamp(42px, 6vw, 58px);
+                margin-bottom: 24px;
+            }
+
+            #main-menu > p {
+                font-size: clamp(19px, 2.8vw, 26px);
+                margin-bottom: 16px;
+            }
+
+            #main-menu > div:nth-of-type(1) {
+                margin-top: 12px;
+                padding: clamp(16px, 3vw, 26px);
+                font-size: clamp(15px, 2.2vw, 20px);
+            }
+
+            #main-menu > div:nth-of-type(1) p {
+                font-size: inherit;
+            }
+
+            #main-menu button {
+                padding: 18px;
+                font-size: clamp(24px, 3.8vw, 34px);
+            }
+
+            #game-container {
+                width: min(100%, 680px);
+            }
+
+            canvas {
+                width: min(600px, calc(100vw - 40px), calc(100dvh - 260px));
+            }
+
+            #game-container > div:first-child {
+                padding: 10px;
+                font-size: 12px;
+                gap: 8px;
+            }
+
+            #game-container > div:first-child > div {
+                max-width: 38%;
+                font-size: 12px;
+            }
+
+            #game-container > div:first-child span {
+                font-size: 12px;
+            }
+
+            #timer {
+                font-size: 22px !important;
+            }
+
+            #hud-level {
+                font-size: 12px !important;
+            }
+
+            #game-container > div:last-child {
+                display: none;
+            }
+        }
+
+        @media (max-width: 520px) {
+            canvas {
+                width: min(600px, calc(100vw - 32px), calc(100dvh - 260px));
+            }
+
+            #game-container > div:first-child {
+                padding: 8px;
+                font-size: 9px;
+                gap: 4px;
+            }
+
+            #game-container > div:first-child > div {
+                max-width: 36%;
+            }
+
+            #timer {
+                font-size: 18px !important;
+            }
+
+            #hud-level {
+                font-size: 9px !important;
+            }
+
+            #main-menu {
+                padding: 20px;
+            }
+
+            #main-menu h1 {
+                font-size: 32px;
+            }
+
+            #main-menu > p {
+                font-size: 14px;
+            }
+
+            #main-menu > p > div {
+                font-size: 12px;
+            }
+
+            #game-container > div:last-child {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- 主選單畫面 -->
-    <div id="main-menu" class="flex flex-col items-center justify-center z-10 max-w-xl w-full p-10 rounded-lg border-4 border-indigo-600 bg-slate-950 text-center shadow-2xl">
-        <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-500 mb-8 animate-pulse">坦克對射</h1>
+    <!-- 主選單畫面 (文字已放大 2.4 倍) -->
+    <div id="main-menu" class="flex flex-col items-center justify-center z-10 max-w-2xl w-full p-10 rounded-lg border-4 border-indigo-600 bg-slate-950 text-center shadow-2xl">
+        <h1 class="text-[42px] md:text-[56px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-500 mb-8 animate-pulse">坦克對射</h1>
         
-        <p class="text-[15px] text-slate-400 mb-8 leading-relaxed">
+        <p class="text-[36px] text-slate-400 mb-8 leading-relaxed">
             總時限 1:30 (時間跨關累積，不會重置！)<br>
             關卡越高，敵機越多，同時 ❤️ 上限越多！<br>
-            坦克控制指南：<br>
-            移動: 使用左下角【飄浮移動搖桿】多點觸控自由移動<br>
-            瞄準/開火: 使用右下角【飄浮瞄準發射按鈕】同時拖曳瞄準並連發<br>
-            暫停: 按下鍵盤【空白鍵 SPACE】<br>
-            規則提示：<br>
-            子彈撞牆或障礙物可反彈 1 次，小心被自己反彈的子彈擊中！過關後 ❤️ 會補滿。<br>
+        <div class="mt-8 text-[31px] text-left text-slate-400 space-y-3 bg-slate-900/60 p-6 rounded border border-indigo-900 leading-relaxed">
+            <p class="text-blue-400 font-bold">P1 (BLUE TANK) 控制：</p>
+            <p>移動: 使用左下角【飄浮移動搖桿】多點觸控自由移動</p>
+            <p>瞄準/開火: 使用右下角【飄浮瞄準發射按鈕】同時拖曳瞄準並連發</p>
+            <p>暫停: 按下鍵盤【空白鍵 SPACE】</p>
+            <hr class="border-slate-800">
+            <p class="text-pink-400 font-bold">規則提示：</p>
+            <p>子彈撞牆或障礙物可反彈 1 次，小心被自己反彈的子彈擊中！過關後 ❤️ 會補滿。</p>
         </div>
             <span class="text-amber-400 font-bold block mt-2">【通關條件】收集 5 粒金幣 或 擊破所有敵機！</span>
         </p>
 
         <div class="space-y-4 w-full">
-            <button onclick="window.initAndStart()" class="w-full py-5 px-6 bg-blue-600 hover:bg-blue-500 text-base rounded border-b-4 border-blue-800 transition active:translate-y-1">
-                START
+            <button onclick="window.initAndStart()" class="w-full py-6 px-6 bg-blue-600 hover:bg-blue-500 text-[38px] rounded border-b-4 border-blue-800 transition active:translate-y-1">
+                START 
             </button>
         </div>
     </div>
 
     <!-- 遊戲進行畫面 -->
     <div id="game-container" class="hidden flex flex-col items-center relative">
-        <div class="w-[600px] bg-slate-950 border-4 border-slate-800 p-4 mb-2 flex justify-between items-center text-[12px] rounded-t-lg">
+        <!-- 頂部計分板與狀態列 (文字已放大 2.4 倍) -->
+        <div class="w-[600px] bg-slate-950 border-4 border-slate-800 p-4 mb-2 flex justify-between items-center text-[29px] rounded-t-lg">
             <div class="flex flex-col items-start space-y-2 max-w-[240px]">
-                <span class="flex items-center gap-1">HP: <span id="p1-hearts" class="text-red-500 tracking-tight">❤️❤️❤️</span></span>
+                <span class="text-blue-400 font-bold text-[31px]">P1: BLUE</span>
+                <span class="flex items-center gap-1">HP: <span id="p1-hearts" class="text-red-500 tracking-tight">❤️❤️❤️</span></span>，
                 <span class="text-amber-400 mt-1 font-bold">COINS: <span id="p1-coins">0/5</span></span>
+                <span class="text-amber-400 mt-1 font-bold">SCORE: <span id="p1-score">0000</span></span>
             </div>
 
             <div class="text-center">
-                <div class="text-slate-400 text-[13px] mb-2" id="hud-level">LEVEL 01</div>
-                <div class="text-white text-lg font-bold bg-slate-900 px-4 py-2 rounded border border-slate-700" id="timer">01:30</div>
+                <div class="text-slate-400 text-[31px] mb-2" id="hud-level">LEVEL 01</div>
+                <div class="text-white text-[43px] font-bold bg-slate-900 px-4 py-2 rounded border border-slate-700" id="timer">01:30</div>
             </div>
 
             <div class="flex flex-col items-end space-y-2">
-                <span class="text-pink-500 font-bold text-[13px]">ENEMIES</span>
+                <span class="text-pink-500 font-bold text-[31px]">ENEMIES</span>
                 <span class="flex items-center gap-1">REMAINING: <span id="enemies-left" class="text-pink-500 font-bold">1</span></span>
             </div>
         </div>
@@ -70,34 +262,39 @@
             <canvas id="gameCanvas" width="600" height="600" class="block bg-slate-900"></canvas>
             
             <!-- 飄浮移動搖桿 (左下角) -->
-            <div id="joystick-base" class="absolute bottom-6 left-6 w-24 h-24 bg-indigo-950/80 border-4 border-indigo-600 rounded-full flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md z-30 select-none">
-                <div id="joystick-stick" class="w-12 h-12 bg-blue-600 rounded-full shadow-inner border-2 border-blue-400 absolute transition-transform duration-75"></div>
+            <div id="joystick-base" class="absolute bottom-6 left-6 w-28 h-28 bg-indigo-950/80 border-4 border-indigo-600 rounded-full flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md z-30 select-none">
+                <div id="joystick-stick" class="w-14 h-14 bg-blue-600 rounded-full shadow-inner border-2 border-blue-400 absolute transition-transform duration-75"></div>
             </div>
 
             <!-- 飄浮瞄準發射按鈕 (右下角) -->
-            <div id="floating-btn" class="absolute bottom-6 right-6 w-24 h-24 bg-indigo-950/80 border-4 border-blue-600 rounded-full flex flex-col items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md z-30 select-none group">
-                <div class="w-12 h-12 bg-blue-600 group-hover:bg-blue-500 rounded-full shadow-inner flex items-center justify-center border-2 border-blue-300">
-                    <span class="text-base">🎯</span>
+            <div id="floating-btn" class="absolute bottom-6 right-6 w-28 h-28 bg-indigo-950/80 border-4 border-blue-600 rounded-full flex flex-col items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md z-30 select-none group">
+                <div class="w-14 h-14 bg-blue-600 group-hover:bg-blue-500 rounded-full shadow-inner flex items-center justify-center border-2 border-blue-300">
+                    <span class="text-xl">🎯</span>
                 </div>
-                <span class="text-[9px] text-blue-300 font-bold mt-0.5 tracking-tighter">FIRE</span>
+                <span class="text-[22px] text-blue-300 font-bold mt-1 tracking-tighter">FIRE</span>
             </div>
 
-            <!-- 結算彈窗 -->
+            <!-- 結算彈窗 (文字已放大 2.4 倍) -->
             <div id="game-modal" class="hidden absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-8 text-center">
-                <h2 id="modal-title" class="text-3xl md:text-4xl font-bold mb-6 animate-pulse">LEVEL CLEARED!</h2>
-                <p id="modal-message" class="text-[17px] text-slate-300 mb-8 max-w-xl leading-relaxed"></p>
-                <button id="modal-btn" class="py-5 px-12 bg-green-600 hover:bg-green-500 text-base rounded border-b-4 border-green-800 transition active:translate-y-1">
+                <h2 id="modal-title" class="text-[72px] font-bold mb-6 animate-pulse">LEVEL CLEARED!</h2>
+                <p id="modal-message" class="text-[41px] text-slate-300 mb-8 max-w-xl leading-relaxed"></p>
+                <button id="modal-btn" class="py-6 px-12 bg-green-600 hover:bg-green-500 text-[38px] rounded border-b-4 border-green-800 transition active:translate-y-1">
                     NEXT LEVEL
                 </button>
             </div>
 
-            <!-- 暫停遮罩 -->
+            <!-- 暫停遮罩 (文字已放大 2.4 倍) -->
             <div id="pause-overlay" class="hidden absolute inset-0 bg-black/75 flex flex-col items-center justify-center z-40 text-center">
-                <div class="border-4 border-indigo-600 bg-slate-950 p-10 rounded shadow-2xl max-w-sm">
-                    <h2 class="text-3xl font-bold mb-6 text-white animate-pulse">GAME PAUSED</h2>
-                    <p class="text-[13px] text-indigo-300 leading-relaxed">PRESS [SPACE] AGAIN TO CONTINUE</p>
+                <div class="border-4 border-indigo-600 bg-slate-950 p-10 rounded shadow-2xl max-w-lg">
+                    <h2 class="text-[72px] font-bold mb-6 text-white animate-pulse">GAME PAUSED</h2>
+                    <p class="text-[31px] text-indigo-300 leading-relaxed">PRESS [SPACE] AGAIN TO CONTINUE</p>
                 </div>
             </div>
+        </div>
+
+        <!-- 底部提示 (文字已放大 2.4 倍) -->
+        <div class="mt-4 text-[26px] text-slate-500 text-center max-w-[600px]">
+            提示: 子彈擊中牆壁或岩石後會反彈一次！千祈唔好俾自己發射嘅子彈反彈擊中，否則同樣扣除 1 顆 ❤️！
         </div>
     </div>
 
@@ -192,7 +389,6 @@
         let floatingAngle = 0;
         const floatingBtn = document.getElementById('floating-btn');
 
-        // 更新搖桿位置
         function updateJoystick(clientX, clientY) {
             const rect = joystickBase.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
@@ -210,7 +406,6 @@
             joystickStick.style.transform = `translate(${stickX}px, ${stickY}px)`;
         }
 
-        // 更新瞄準角度
         function updateFloatingAim(clientX, clientY) {
             const rect = floatingBtn.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
@@ -222,7 +417,6 @@
             }
         }
 
-        // 綁定滑鼠操作 (PC 兼容)
         joystickBase.addEventListener('mousedown', (e) => {
             isJoystickActive = true;
             updateJoystick(e.clientX, e.clientY);
@@ -241,7 +435,6 @@
             isFloatingActive = false;
         });
 
-        // 綁定獨立多點觸控事件 (Mobile / Tablet 完美雙手並用)
         joystickBase.addEventListener('touchstart', (e) => {
             if (joystickTouchId === null) {
                 const touch = e.changedTouches[0];
@@ -480,9 +673,10 @@
 
                 if (this.id !== 1) {
                     ctx.save();
-                    ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+                    // Canvas 文字已放大 2.4 倍 (10px -> 24px)
+                    ctx.font = '24px sans-serif'; ctx.textAlign = 'center';
                     let hStr = ''; for (let i = 0; i < this.maxHp; i++) hStr += i < this.hp ? '❤️' : '🖤';
-                    ctx.fillText(hStr, this.x, this.y - this.radius - 10);
+                    ctx.fillText(hStr, this.x, this.y - this.radius - 15);
                     ctx.restore();
                 }
             }
@@ -501,15 +695,27 @@
                 const limitMin = BORDER_SIZE + this.radius, limitMax = MAP_SIZE - BORDER_SIZE - this.radius;
                 let bounced = false;
 
-                if (this.x < limitMin || this.x > limitMax) { this.vx *= -1; bounced = true; }
-                if (this.y < limitMin || this.y > limitMax) { this.vy *= -1; bounced = true; }
+                if (this.x < limitMin) { this.x = limitMin; this.vx = Math.abs(this.vx); bounced = true; }
+                if (this.x > limitMax) { this.x = limitMax; this.vx = -Math.abs(this.vx); bounced = true; }
+                if (this.y < limitMin) { this.y = limitMin; this.vy = Math.abs(this.vy); bounced = true; }
+                if (this.y > limitMax) { this.y = limitMax; this.vy = -Math.abs(this.vy); bounced = true; }
 
                 obstacles.forEach(rock => {
-                    if (Math.hypot(this.x - rock.x, this.y - rock.y) < rock.r + this.radius) {
-                        const nx = (this.x - rock.x) / rock.r, ny = (this.y - rock.y) / rock.r;
+                    const dx = this.x - rock.x, dy = this.y - rock.y;
+                    const distance = Math.hypot(dx, dy);
+                    const minDistance = rock.r + this.radius;
+                    if (distance < minDistance) {
+                        const speed = Math.hypot(this.vx, this.vy);
+                        const nx = distance > 0 ? dx / distance : -this.vx / speed;
+                        const ny = distance > 0 ? dy / distance : -this.vy / speed;
                         const dot = this.vx * nx + this.vy * ny;
-                        this.vx -= 2 * dot * nx; this.vy -= 2 * dot * ny;
-                        bounced = true;
+                        if (dot < 0) {
+                            this.vx -= 2 * dot * nx;
+                            this.vy -= 2 * dot * ny;
+                            bounced = true;
+                        }
+                        this.x = rock.x + nx * minDistance;
+                        this.y = rock.y + ny * minDistance;
                     }
                 });
 
@@ -580,14 +786,21 @@
             document.getElementById('timer').innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
 
+        function canBulletHitTank(bullet, tank) {
+            if (bullet.ownerId === 1) {
+                return tank.id !== 1 || bullet.bounces > 0;
+            }
+            return tank.id === 1 || (tank.id === bullet.ownerId && bullet.bounces > 0);
+        }
+
         function checkCollisions() {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i];
-                if (p1.hp > 0 && Math.hypot(b.x - p1.x, b.y - p1.y) < p1.radius + b.radius) {
+                if (p1.hp > 0 && canBulletHitTank(b, p1) && Math.hypot(b.x - p1.x, b.y - p1.y) < p1.radius + b.radius) {
                     damageTank(p1); bullets.splice(i, 1); continue;
                 }
                 for (let enemy of enemies) {
-                    if (enemy.hp > 0 && Math.hypot(b.x - enemy.x, b.y - enemy.y) < enemy.radius + b.radius) {
+                    if (enemy.hp > 0 && canBulletHitTank(b, enemy) && Math.hypot(b.x - enemy.x, b.y - enemy.y) < enemy.radius + b.radius) {
                         damageTank(enemy); bullets.splice(i, 1); break;
                     }
                 }
@@ -620,7 +833,7 @@
             gameActive = false;
             if (timerInterval) clearInterval(timerInterval);
             document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-message').innerText = msg;
+            document.getElementById('modal-message').innerHTML = msg;
             let btn = document.getElementById('modal-btn');
             btn.innerText = btnText;
             btn.onclick = () => { document.getElementById('game-modal').classList.add('hidden'); callback(); };
@@ -662,14 +875,40 @@
             if (p1) p1.draw();
             enemies.forEach(e => e.draw());
 
-            ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(`LVL ${currentLevel}`, 300, 10);
-            ctx.fillText(`LVL ${currentLevel}`, 300, 595);
+            // 4邊框關顯示 (Canvas 文字已放大 2.4 倍: 10px -> 24px)
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const borderText = `LVL ${currentLevel}`;
 
+            ctx.fillText(borderText, MAP_SIZE / 2, BORDER_SIZE / 2);
+            ctx.fillText(borderText, MAP_SIZE / 2, MAP_SIZE - BORDER_SIZE / 2);
+
+            ctx.save();
+            ctx.translate(BORDER_SIZE / 2, MAP_SIZE / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(borderText, 0, 0);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(MAP_SIZE - BORDER_SIZE / 2, MAP_SIZE / 2);
+            ctx.rotate(Math.PI / 2);
+            ctx.fillText(borderText, 0, 0);
+            ctx.restore();
+            ctx.restore();
+
+            // 開局 1 秒提示 (Canvas 文字已放大 2.4 倍: 24px -> 58px)
             if (Date.now() - levelStartTime < 1000) {
                 ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, 600, 600);
-                ctx.fillStyle = '#fbbf24'; ctx.font = '24px sans-serif'; ctx.textAlign = 'center';
-                ctx.fillText("READY...", 300, 300);
+                ctx.save();
+                ctx.fillStyle = '#fbbf24'; 
+                ctx.font = '58px "Press Start 2P"'; 
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText("READY...", MAP_SIZE/2, MAP_SIZE/2);
+                ctx.restore();
             }
         }
 
@@ -686,4 +925,4 @@
         }
     </script>
 </body>
-</html>
+</html>，
