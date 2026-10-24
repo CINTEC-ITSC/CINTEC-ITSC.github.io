@@ -341,7 +341,7 @@ clawReturnSpeed: 15, // (was 10)
 grabPauseTime: 30, // Ultra-fast pause (was 150ms)
 releasePauseTime: 30, // Ultra-fast release (was 150ms)
 swingDurationMin: 900,
-swingDurationMax: 1200,
+swingDurationMax: 1000,
 swingCount: 3,
 
 chuteWidth: 160,
@@ -711,6 +711,8 @@ ctx.lineTo(claw.x + 15, claw.y + 20 + Math.cos(prongAngle) * prongLength);
 ctx.stroke();
 
 if (claw.state === 'SWINGING') {
+const timeRemaining = Math.max(0, claw.swingDuration - (Date.now() - claw.timer));
+const countdown = Math.min(timeRemaining / 1000, 1);
 ctx.save();
 ctx.font = 'bold 24px Courier New';
 ctx.textAlign = 'center';
@@ -719,6 +721,17 @@ ctx.fillStyle = '#00f3ff';
 ctx.shadowColor = '#00f3ff';
 ctx.shadowBlur = 12;
 ctx.fillText('CLICK THE SIDE THE DOLL LEANS!', canvas.width / 2, 95);
+ctx.shadowBlur = 0;
+ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+ctx.fillRect(canvas.width / 2 - 110, 120, 220, 16);
+ctx.fillStyle = countdown < 0.3 ? '#ff007f' : '#00f3ff';
+ctx.fillRect(canvas.width / 2 - 108, 122, 216 * countdown, 12);
+ctx.strokeStyle = '#ffffff';
+ctx.lineWidth = 2;
+ctx.strokeRect(canvas.width / 2 - 110, 120, 220, 16);
+ctx.font = 'bold 16px Courier New';
+ctx.fillStyle = '#ffffff';
+ctx.fillText(`${(timeRemaining / 1000).toFixed(1)}s`, canvas.width / 2, 155);
 ctx.restore();
 }
 
