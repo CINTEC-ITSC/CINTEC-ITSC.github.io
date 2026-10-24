@@ -608,7 +608,7 @@
                         const dist = Math.hypot(p1.x - this.x, p1.y - this.y);
                         if (dist > 200) { moveX = Math.sign(p1.x - this.x); moveY = Math.sign(p1.y - this.y); }
                         else if (dist < 120) { moveX = -Math.sign(p1.x - this.x); moveY = -Math.sign(p1.y - this.y); }
-                        if (Date.now() - this.lastShotTime > 1200 && Math.random() < 0.4) this.shoot();
+                        if (Date.now() - this.lastShotTime > 1200 && Math.random() < 0.3) this.shoot();
                     }
                 }
 
@@ -685,7 +685,8 @@
         class Bullet {
             constructor(ownerId, x, y, angle) {
                 this.ownerId = ownerId; this.x = x; this.y = y;
-                this.vx = Math.cos(angle) * 5; this.vy = Math.sin(angle) * 5;
+                const speed = ownerId === 1 ? 5 : 4.25;
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
                 this.radius = 4; this.bounces = 0;
                 this.color = ownerId === 1 ? '#60a5fa' : '#fb7185';
             }
