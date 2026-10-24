@@ -664,7 +664,7 @@ if (bear.inChute) return;
 ctx.save();
 ctx.translate(bear.x, bear.y);
 const swingTilt = bear === claw.grabbedBear && claw.state === 'SWINGING'
-? claw.fallSide * 0.7 + Math.sin(Date.now() / 110) * 0.1
+? claw.fallSide * (0.95 + Math.sin(Date.now() / 120) * 0.18) + Math.sin(Date.now() / 75) * 0.08
 : 0;
 ctx.rotate(bear.rotation + swingTilt);
 ctx.shadowColor = 'rgba(0,0,0,0.8)';
@@ -720,7 +720,26 @@ ctx.textBaseline = 'middle';
 ctx.fillStyle = '#00f3ff';
 ctx.shadowColor = '#00f3ff';
 ctx.shadowBlur = 12;
-ctx.fillText('CLICK THE SIDE THE DOLL LEANS!', canvas.width / 2, 95);
+const fallLabel = claw.fallSide < 0 ? '← FALLING LEFT' : 'FALLING RIGHT →';
+ctx.fillText(fallLabel, canvas.width / 2, 95);
+
+// A pulsing arrow beside the claw reinforces the doll's fall direction.
+const arrowPulse = 48 + Math.sin(Date.now() / 90) * 10;
+const arrowY = claw.y - 45;
+const arrowStartX = claw.x + claw.fallSide * 12;
+const arrowEndX = claw.x + claw.fallSide * arrowPulse;
+ctx.beginPath();
+ctx.moveTo(arrowStartX, arrowY);
+ctx.lineTo(arrowEndX, arrowY);
+ctx.lineTo(arrowEndX - claw.fallSide * 16, arrowY - 12);
+ctx.moveTo(arrowEndX, arrowY);
+ctx.lineTo(arrowEndX - claw.fallSide * 16, arrowY + 12);
+ctx.strokeStyle = '#ff007f';
+ctx.lineWidth = 8;
+ctx.lineCap = 'round';
+ctx.shadowColor = '#ff007f';
+ctx.shadowBlur = 16;
+ctx.stroke();
 ctx.shadowBlur = 0;
 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
 ctx.fillRect(canvas.width / 2 - 110, 120, 220, 16);
