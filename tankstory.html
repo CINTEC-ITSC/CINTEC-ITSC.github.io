@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>坦克對射 - True Wise Campaign</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --theme: #38bdf8;
+            --theme-dim: #0ea5e9;
+        }
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background:
+                radial-gradient(1200px 600px at 50% -10%, rgba(56, 189, 248, 0.18), transparent 55%),
+                radial-gradient(900px 500px at 80% 120%, rgba(251, 191, 36, 0.08), transparent 50%),
+                #07070f;
+            color: #fff;
+            user-select: none;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            width: min(600px, calc(100vw - 32px), calc(100dvh - 280px));
+            image-rendering: pixelated;
+            box-shadow: 0 0 28px color-mix(in srgb, var(--theme) 55%, transparent);
+            background: #0b1020;
+        }
+        #main-menu {
+            max-height: calc(100dvh - 24px);
+            overflow-y: auto;
+            border-image: linear-gradient(180deg, #38bdf8, #fbbf24) 1;
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.2);
+        }
+        #game-container { width: min(100%, 640px); }
+        .hud-panel {
+            width: 100%;
+            background: linear-gradient(180deg, #0b1224, #070b16);
+            border: 3px solid #1e3a5f;
+            border-bottom: none;
+            padding: 10px 12px;
+            display: grid;
+            grid-template-columns: 1.1fr 1fr 1.1fr;
+            gap: 8px;
+            align-items: center;
+            font-size: 10px;
+            border-radius: 10px 10px 0 0;
+        }
+        .hp-wrap {
+            width: 150px;
+            height: 12px;
+            border: 2px solid #38bdf8;
+            background: #0b1020;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        #hp-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #22d3ee, #2563eb 60%, #fbbf24);
+            box-shadow: 0 0 10px #22d3ee;
+        }
+        .objective-box {
+            text-align: center;
+            color: #fde68a;
+            line-height: 1.5;
+        }
+        #quiz-overlay, #game-modal, #pause-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+        }
+        #quiz-answer {
+            font-family: Orbitron, sans-serif;
+            letter-spacing: 2px;
+            text-align: center;
+            background: #0b1020;
+            color: #fbbf24;
+            border: 3px solid #fbbf24;
+            padding: 10px;
+            width: min(240px, 70%);
+            font-size: 22px;
+        }
+        #quiz-answer:focus { outline: 2px solid #38bdf8; }
+        .chapter-card {
+            text-align: left;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid #1e3a8a;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            font-size: 11px;
+            line-height: 1.7;
+            color: #cbd5e1;
+        }
+        .chapter-card b { color: #fbbf24; }
+        @media (max-width: 560px) {
+            .hud-panel { font-size: 8px; grid-template-columns: 1fr 1fr 1fr; }
+            .hp-wrap { width: 110px; }
+            .chapter-card { font-size: 10px; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div id="main-menu" class="flex flex-col items-center z-10 max-w-2xl w-full p-8 rounded-lg border-4 border-cyan-500 bg-slate-950 text-center">
+        <p class="text-cyan-300 text-[10px] tracking-[0.4em] mb-3">OPERATION TRUE WISE</p>
+        <h1 class="text-[38px] md:text-[52px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-amber-300 mb-6 animate-pulse">坦克對射</h1>
+        <p class="text-amber-300 text-sm md:text-base mb-5 leading-relaxed">三章戰役 · 兩分鐘內完成 · 只有真正的智慧才能通關</p>
+
+        <div class="w-full mb-6">
+            <div class="chapter-card">
+                <b>第一章 無線電靜默</b><br>
+                尋找並收集 10 枚金幣。開場 5 秒無敵。必須躲藏或閃避無線電雷達；被掃描 3 次後，火箭會把整張地圖炸毀。第一章與第二章共有 1 次復活機會（30 秒簡單代數）。
+            </div>
+            <div class="chapter-card">
+                <b>第二章 鋼鐵攻勢</b><br>
+                消滅全部 5 輛敵坦克。敵軍分散部署，各 3 命，指揮官擁有 20 命。第一章與第二章共有 1 次復活機會。
+            </div>
+            <div class="chapter-card">
+                <b>第三章 總統之心</b><br>
+                收集 3 顆鑽石並擊殺總統。總統只有 1 命，但能以超能心智操控 5 輛坦克（傷害 1／3 命），並每 5 秒發射 1 枚微型火箭（傷害 2／1 命）。瀕死時會出現隨機 60 秒中學代數題：玩家瀕死且答對 → 復活並擊殺總統；答錯 → 玩家陣亡。總統瀕死且答錯 → 召喚 1 輛 3 命護衛；答對 → 總統倒下，玩家勝利。
+            </div>
+        </div>
+
+        <p class="text-cyan-300 text-[11px] md:text-sm mb-6 leading-relaxed">WASD 移動　·　滑鼠瞄準　·　按住左鍵開火　·　空白鍵暫停</p>
+        <button onclick="window.initAndStart()" class="w-full py-5 px-6 bg-cyan-600 hover:bg-cyan-500 text-[28px] rounded border-b-4 border-cyan-900 transition active:translate-y-1 text-slate-950 font-bold">
+            START
+        </button>
+    </div>
+
+    <div id="game-container" class="hidden flex flex-col items-center relative">
+        <div class="hud-panel" id="hud-panel">
+            <div>
+                <div class="text-cyan-300 font-bold" id="hud-pilot">COMMANDER</div>
+                <div class="text-white mt-1">HP <span id="hp-text">20/20</span></div>
+                <div class="hp-wrap"><div id="hp-bar"></div></div>
+                <div class="text-amber-300 mt-2">SCORE <span id="p1-score">0000</span></div>
+            </div>
+            <div class="objective-box">
+                <div class="text-cyan-200 text-[10px]" id="hud-chapter">CHAPTER I</div>
+                <div class="text-white text-[11px] mt-1" id="hud-title">RADIO SILENCE</div>
+                <div class="text-amber-200 mt-2 text-[10px]" id="hud-objective">COINS 0/10</div>
+                <div class="text-pink-300 mt-2 text-[10px]" id="campaign-timer">TIME 02:00</div>
+            </div>
+            <div class="text-right text-pink-300">
+                <div id="hud-side-label">RADAR</div>
+                <div class="text-white mt-1" id="hud-status">HIDDEN</div>
+                <div class="text-cyan-200 mt-2 text-[10px]" id="hud-extra">HIDE BEHIND ROCKS</div>
+            </div>
+        </div>
+
+        <div class="relative bg-slate-950 p-1 border-4 rounded-b-lg" id="stage-frame" style="border-color:#155e75">
+            <canvas id="gameCanvas" width="1050" height="1050"></canvas>
+
+            <div id="game-modal" class="hidden bg-black/90 flex flex-col items-center justify-center p-8 text-center">
+                <h2 id="modal-title" class="text-[28px] md:text-[36px] font-bold mb-5 animate-pulse">CLEARED</h2>
+                <p id="modal-message" class="text-[14px] md:text-[16px] text-slate-300 mb-6 max-w-xl leading-relaxed"></p>
+                <button id="modal-btn" class="py-4 px-8 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[16px] rounded border-b-4 border-amber-800 transition active:translate-y-1">
+                    NEXT
+                </button>
+            </div>
+
+            <div id="pause-overlay" class="hidden bg-black/75 flex flex-col items-center justify-center text-center z-40">
+                <div class="border-4 border-cyan-500 bg-slate-950 p-8 rounded max-w-lg">
+                    <h2 class="text-[28px] font-bold mb-4 text-white">PAUSED</h2>
+                    <p class="text-[12px] text-cyan-300">PRESS [SPACE] TO CONTINUE</p>
+                </div>
+            </div>
+
+            <div id="quiz-overlay" class="hidden bg-black/92 flex flex-col items-center justify-center text-center p-6 z-[60]">
+                <p class="text-amber-300 text-[10px] tracking-[0.3em] mb-2">TRUE WISE PROTOCOL</p>
+                <h2 id="quiz-heading" class="text-[20px] md:text-[26px] font-bold mb-2 text-cyan-300">60s ALGEBRA</h2>
+                <p id="quiz-context" class="text-[11px] text-slate-300 mb-4 leading-relaxed max-w-md"></p>
+                <p id="quiz-question" class="text-[16px] md:text-[20px] text-amber-200 mb-4 font-[Orbitron]" style="font-family:Orbitron,sans-serif"></p>
+                <input id="quiz-answer" maxlength="8" autocomplete="off" placeholder="x = ?">
+                <div id="quiz-timer" class="text-[22px] text-pink-400 my-4">60</div>
+                <button id="quiz-submit" class="py-3 px-6 bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-[14px] rounded border-b-4 border-cyan-900">SUBMIT</button>
+                <p class="text-[10px] text-slate-400 mt-3">輸入整數 x，按 Enter 送出</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SoundFX {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            tone(type, f1, f2, dur, vol = 0.2) {
+                this.init();
+                const ctx = this.ctx, osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(f1, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(Math.max(20, f2), ctx.currentTime + dur);
+                gain.gain.setValueAtTime(vol, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + dur);
+            }
+            playShoot() { this.tone('triangle', 480, 90, 0.14, 0.22); }
+            playBounce() { this.tone('sine', 820, 520, 0.07, 0.12); }
+            playCoin() { this.tone('sine', 587, 880, 0.22, 0.14); }
+            playDiamond() { this.tone('square', 740, 1180, 0.28, 0.1); }
+            playPowerup() { this.tone('sawtooth', 160, 920, 0.28, 0.12); }
+            playAlarm() { this.tone('square', 420, 180, 0.35, 0.12); this.tone('square', 180, 420, 0.35, 0.1); }
+            playRadar() { this.tone('sine', 1400, 900, 0.08, 0.04); }
+            playWhoosh() { this.tone('sawtooth', 300, 60, 0.4, 0.08); }
+            playExplosion() {
+                this.init();
+                const ctx = this.ctx, bufferSize = ctx.sampleRate * 0.35, buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = ctx.createBufferSource(); noise.buffer = buffer;
+                const filter = ctx.createBiquadFilter(); filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(900, ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.32);
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.38, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.32);
+                noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+                noise.start(); noise.stop(ctx.currentTime + 0.35);
+            }
+            playBigBoom() {
+                this.init();
+                const ctx = this.ctx;
+                const bufferSize = ctx.sampleRate * 1.1, buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+                const noise = ctx.createBufferSource(); noise.buffer = buffer;
+                const filter = ctx.createBiquadFilter(); filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1400, ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 1.0);
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.55, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.05);
+                noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+                noise.start(); noise.stop(ctx.currentTime + 1.1);
+                this.tone('sine', 70, 28, 1.0, 0.3);
+            }
+        }
+
+        const sfx = new SoundFX();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const MAP_SIZE = 1050, BORDER_SIZE = 38;
+        const MAP_SCALE = 1.75, CAMPAIGN_TIME_LIMIT = 120000;
+        let campaignDeadline = 0;
+
+        const trackCanvas = document.createElement('canvas');
+        trackCanvas.width = MAP_SIZE; trackCanvas.height = MAP_SIZE;
+        const trackCtx = trackCanvas.getContext('2d');
+
+        let gameActive = false, paused = false, mapBlowing = false, quizActive = false;
+        let currentChapter = 1, cumulativeScore = 0, levelStartTime = 0;
+        let mouseX = MAP_SIZE / 2, mouseY = MAP_SIZE / 2, isMouseDown = false;
+        const pressedKeys = new Set();
+
+        let p1 = null, enemies = [], bullets = [], coins = [], diamonds = [];
+        let radios = [], obstacles = [], particles = [], blasts = [], skyRockets = [], tinyRockets = [];
+        let cracks = [], mushrooms = [], shake = 0, flash = 0, catastropheTime = 0;
+        let coinsCollected = 0, diamondsCollected = 0, detectMeter = 0, radarScans = 0, hiddenStatus = 'HIDDEN';
+        let lastRocketSalvo = 0, lastRadarBeep = 0, president = null, pendingLethal = null;
+        let quizDeadline = 0, quizTimerId = null, quizKind = null, quizData = null, loopOn = false;
+        let summonedGuards = 0, campaignReviveUsed = false, radarGraceUntil = 0;
+
+        function generateAlgebraQuiz(easy) {
+            for (let n = 0; n < 50; n++) {
+                const x = easy ? (2 + Math.floor(Math.random() * 9)) : (2 + Math.floor(Math.random() * 13));
+                const kind = Math.floor(Math.random() * (easy ? 5 : 6));
+                let item = null;
+                if (kind === 0) {
+                    const a = 2 + Math.floor(Math.random() * (easy ? 4 : 6));
+                    const b = 1 + Math.floor(Math.random() * 9);
+                    item = { q: `${a}x + ${b} = ${a * x + b}`, a: x };
+                } else if (kind === 1) {
+                    const a = 2 + Math.floor(Math.random() * 5);
+                    const b = 1 + Math.floor(Math.random() * 8);
+                    const rhs = a * x - b;
+                    if (rhs <= 0) continue;
+                    item = { q: `${a}x − ${b} = ${rhs}`, a: x };
+                } else if (kind === 2) {
+                    const b = 1 + Math.floor(Math.random() * 9);
+                    item = { q: `x + ${b} = ${x + b}`, a: x };
+                } else if (kind === 3) {
+                    const a = 2 + Math.floor(Math.random() * 4);
+                    const b = 1 + Math.floor(Math.random() * 5);
+                    item = { q: `${a}(x + ${b}) = ${a * (x + b)}`, a: x };
+                } else if (kind === 4) {
+                    const divisors = [];
+                    for (let d = 2; d <= (easy ? 5 : 6); d++) if (x % d === 0) divisors.push(d);
+                    if (!divisors.length) continue;
+                    const a = divisors[Math.floor(Math.random() * divisors.length)];
+                    if (easy) item = { q: `x / ${a} = ${x / a}`, a: x };
+                    else {
+                        const b = 1 + Math.floor(Math.random() * 6);
+                        item = { q: `x / ${a} + ${b} = ${x / a + b}`, a: x };
+                    }
+                } else {
+                    const a = 3 + Math.floor(Math.random() * 5);
+                    const c = 1 + Math.floor(Math.random() * (a - 1));
+                    const b = 1 + Math.floor(Math.random() * 8);
+                    item = { q: `${a}x + ${b} = ${c}x + ${(a - c) * x + b}`, a: x };
+                }
+                if (item && Number.isInteger(item.a) && item.a > 0) return item;
+            }
+            return { q: '2x + 4 = 12', a: 4 };
+        }
+
+        function playerInvincible() {
+            return currentChapter === 1 && p1 && Date.now() - levelStartTime < 5000;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (quizActive) {
+                if (e.code === 'Enter') { e.preventDefault(); submitQuiz(); }
+                return;
+            }
+            if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) e.preventDefault();
+            if (e.code === 'Space') {
+                if (gameActive && !mapBlowing && !e.repeat) {
+                    paused = !paused;
+                    document.getElementById('pause-overlay').classList.toggle('hidden', !paused);
+                }
+                return;
+            }
+            pressedKeys.add(e.code);
+        });
+        window.addEventListener('keyup', (e) => pressedKeys.delete(e.code));
+        window.addEventListener('blur', () => pressedKeys.clear());
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        });
+        canvas.addEventListener('mousedown', (e) => { if (e.button === 0) isMouseDown = true; });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
+        document.getElementById('quiz-submit').onclick = submitQuiz;
+
+        function themeFor(ch) {
+            if (ch === 1) return { hex: '#22c55e', name: 'CHAPTER I', title: 'RADIO SILENCE', frame: '#14532d' };
+            if (ch === 2) return { hex: '#f43f5e', name: 'CHAPTER II', title: 'IRON ASSAULT', frame: '#7f1d1d' };
+            return { hex: '#fbbf24', name: 'CHAPTER III', title: 'PRESIDENT', frame: '#854d0e' };
+        }
+
+        function applyTheme() {
+            const t = themeFor(currentChapter);
+            document.documentElement.style.setProperty('--theme', t.hex);
+            document.getElementById('stage-frame').style.borderColor = t.frame;
+            document.getElementById('hud-chapter').innerText = t.name;
+            document.getElementById('hud-title').innerText = t.title;
+        }
+
+        function setupMap() {
+            radios = [];
+            if (currentChapter === 1) {
+                obstacles = [
+                    { x: 150, y: 180, r: 48, points: [] },
+                    { x: 430, y: 150, r: 42, points: [] },
+                    { x: 300, y: 320, r: 52, points: [] }
+                ];
+                radios = [
+                    { x: 80, y: 80, angle: 0.4, speed: 0.017, cone: 1.4, range: 650, bodyR: 16 },
+                    { x: 520, y: 90, angle: 2.2, speed: -0.015, cone: 1.4, range: 650, bodyR: 16 }
+                ];
+            } else if (currentChapter === 2) {
+                obstacles = [
+                    { x: 300, y: 170, r: 44, points: [] },
+                    { x: 170, y: 380, r: 40, points: [] },
+                    { x: 440, y: 390, r: 42, points: [] }
+                ];
+            } else {
+                obstacles = [
+                    { x: 160, y: 220, r: 38, points: [] },
+                    { x: 440, y: 220, r: 38, points: [] },
+                    { x: 300, y: 400, r: 46, points: [] },
+                    { x: 110, y: 480, r: 32, points: [] },
+                    { x: 490, y: 480, r: 32, points: [] }
+                ];
+            }
+            radios.forEach(r => {
+                r.x *= MAP_SCALE;
+                r.y *= MAP_SCALE;
+                r.range *= MAP_SCALE;
+                r.bodyR *= MAP_SCALE;
+            });
+            obstacles.forEach(rock => {
+                rock.x *= MAP_SCALE;
+                rock.y *= MAP_SCALE;
+                rock.r *= MAP_SCALE;
+                rock.points = [];
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const variance = 0.84 + Math.random() * 0.28;
+                    rock.points.push({ x: Math.cos(angle) * rock.r * variance, y: Math.sin(angle) * rock.r * variance });
+                }
+            });
+        }
+
+        function initTrackCanvas() {
+            const pal = currentChapter === 1 ? ['#08140f', '#12352a'] : currentChapter === 2 ? ['#14080c', '#3a1520'] : ['#141008', '#3a2e12'];
+            trackCtx.fillStyle = pal[0];
+            trackCtx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+            trackCtx.strokeStyle = pal[1];
+            trackCtx.lineWidth = 2;
+            const gridStep = 30 * MAP_SCALE;
+            for (let x = BORDER_SIZE; x < MAP_SIZE - BORDER_SIZE; x += gridStep) {
+                trackCtx.beginPath(); trackCtx.moveTo(x, BORDER_SIZE); trackCtx.lineTo(x, MAP_SIZE - BORDER_SIZE); trackCtx.stroke();
+            }
+            for (let y = BORDER_SIZE; y < MAP_SIZE - BORDER_SIZE; y += gridStep) {
+                trackCtx.beginPath(); trackCtx.moveTo(BORDER_SIZE, y); trackCtx.lineTo(MAP_SIZE - BORDER_SIZE, y); trackCtx.stroke();
+            }
+            cracks = [];
+        }
+
+        function solids() {
+            const list = obstacles.map(o => ({ x: o.x, y: o.y, r: o.r }));
+            radios.forEach(r => list.push({ x: r.x, y: r.y, r: r.bodyR }));
+            return list;
+        }
+
+        function isClearOfSolids(x, y, radius) {
+            return solids().every(s => Math.hypot(x - s.x, y - s.y) >= s.r + radius + 14);
+        }
+
+        function getSafeSpawnPos(radius, avoidEntities = [], extraGap = 56 * MAP_SCALE) {
+            for (let attempts = 0; attempts < 280; attempts++) {
+                const rx = BORDER_SIZE + radius + 28 + Math.random() * (MAP_SIZE - 2 * BORDER_SIZE - 2 * radius - 56);
+                const ry = BORDER_SIZE + radius + 28 + Math.random() * (MAP_SIZE - 2 * BORDER_SIZE - 2 * radius - 56);
+                let tooClose = false;
+                for (const s of solids()) {
+                    if (Math.hypot(rx - s.x, ry - s.y) < s.r + radius + 14) { tooClose = true; break; }
+                }
+                if (!tooClose) {
+                    for (const entity of avoidEntities) {
+                        if (entity && Math.hypot(rx - entity.x, ry - entity.y) < extraGap) { tooClose = true; break; }
+                    }
+                }
+                if (!tooClose) return { x: rx, y: ry };
+            }
+            return { x: 300 * MAP_SCALE, y: 480 * MAP_SCALE };
+        }
+
+        function lineBlocked(ax, ay, bx, by) {
+            const dx = bx - ax, dy = by - ay;
+            const lengthSq = dx * dx + dy * dy || 1;
+            return obstacles.some(rock => {
+                const t = Math.max(0, Math.min(1, ((rock.x - ax) * dx + (rock.y - ay) * dy) / lengthSq));
+                const closestX = ax + t * dx, closestY = ay + t * dy;
+                return Math.hypot(closestX - rock.x, closestY - rock.y) < rock.r * 1.12;
+            });
+        }
+
+        class Tank {
+            constructor(id, x, y, role) {
+                this.id = id; this.x = x; this.y = y; this.role = role;
+                this.angle = 0; this.turretAngle = 0;
+                this.speed = (role === 'player' ? 2.35 * 0.85 : role === 'president' ? 1.15 : 1.7) * 6;
+                this.radius = (role === 'president' ? 26 : 20) * MAP_SCALE;
+                this.maxHp = role === 'player' ? 20 : role === 'president' ? 1 : 3;
+                this.hp = this.maxHp;
+                this.lastShotTime = 0;
+                this.cooldown = role === 'player' ? 320 : role === 'president' ? 2200 : 900;
+                this.damage = 1;
+                this.isPresident = role === 'president';
+                this.strafe = Math.random() < 0.5 ? 1 : -1;
+            }
+
+            update() {
+                if (this.hp <= 0) return;
+                let moveX = 0, moveY = 0;
+                if (this.role === 'player') {
+                    moveX = (pressedKeys.has('KeyD') ? 1 : 0) - (pressedKeys.has('KeyA') ? 1 : 0);
+                    moveY = (pressedKeys.has('KeyS') ? 1 : 0) - (pressedKeys.has('KeyW') ? 1 : 0);
+                    if (moveX || moveY) {
+                        const len = Math.hypot(moveX, moveY);
+                        moveX = (moveX / len) * this.speed;
+                        moveY = (moveY / len) * this.speed;
+                        this.angle = Math.atan2(moveY, moveX);
+                    }
+                    this.turretAngle = Math.atan2(mouseY - this.y, mouseX - this.x);
+                    if (isMouseDown) this.shoot();
+                } else if (p1 && p1.hp > 0) {
+                    this.turretAngle = Math.atan2(p1.y - this.y, p1.x - this.x);
+                    const dist = Math.hypot(p1.x - this.x, p1.y - this.y);
+                    if (this.isPresident) {
+                        if (dist < 200) { moveX = -Math.sign(p1.x - this.x); moveY = -Math.sign(p1.y - this.y); }
+                        else if (dist > 280) { moveX = Math.sign(p1.x - this.x); moveY = Math.sign(p1.y - this.y); }
+                        else {
+                            moveX = -Math.sign(p1.y - this.y) * this.strafe;
+                            moveY = Math.sign(p1.x - this.x) * this.strafe;
+                        }
+                        if (Date.now() - this.lastShotTime > this.cooldown && Math.random() < 0.2) this.shoot();
+                    } else {
+                        if (dist > 190) { moveX = Math.sign(p1.x - this.x); moveY = Math.sign(p1.y - this.y); }
+                        else if (dist < 110) { moveX = -Math.sign(p1.x - this.x); moveY = -Math.sign(p1.y - this.y); }
+                        if (Date.now() - this.lastShotTime > this.cooldown && Math.random() < 0.35) this.shoot();
+                    }
+                    if (moveX || moveY) {
+                        const len = Math.hypot(moveX, moveY) || 1;
+                        moveX = (moveX / len) * this.speed;
+                        moveY = (moveY / len) * this.speed;
+                        this.angle = Math.atan2(moveY, moveX);
+                    }
+                }
+                if (moveX || moveY) {
+                    const nx = this.x + moveX, ny = this.y + moveY;
+                    if (this.canMoveTo(nx, this.y)) this.x = nx;
+                    if (this.canMoveTo(this.x, ny)) this.y = ny;
+                }
+            }
+
+            canMoveTo(tx, ty) {
+                const limit = BORDER_SIZE + this.radius;
+                if (tx < limit || tx > MAP_SIZE - limit || ty < limit || ty > MAP_SIZE - limit) return false;
+                for (const s of solids()) {
+                    if (Math.hypot(tx - s.x, ty - s.y) < s.r * 1.12 + this.radius) return false;
+                }
+                return true;
+            }
+
+            shoot() {
+                if (Date.now() - levelStartTime < 1200) return;
+                const now = Date.now();
+                if (now - this.lastShotTime < this.cooldown) return;
+                this.lastShotTime = now;
+                sfx.playShoot();
+                const bx = this.x + Math.cos(this.turretAngle) * (this.radius + 8);
+                const by = this.y + Math.sin(this.turretAngle) * (this.radius + 8);
+                bullets.push(new Bullet(this.id, bx, by, this.turretAngle, this.damage));
+            }
+
+            draw() {
+                if (this.hp <= 0) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(MAP_SCALE, MAP_SCALE);
+                ctx.rotate(this.angle);
+                if (this.role === 'player') {
+                    ctx.fillStyle = '#020617';
+                    ctx.fillRect(-17, -15, 34, 7); ctx.fillRect(-17, 8, 34, 7);
+                    ctx.fillStyle = '#64748b';
+                    for (let i = -15; i < 17; i += 5) { ctx.fillRect(i, -15, 3, 7); ctx.fillRect(i, 8, 3, 7); }
+                    ctx.fillStyle = '#1d4ed8';
+                    ctx.beginPath(); ctx.moveTo(-14, -11); ctx.lineTo(16, -8); ctx.lineTo(16, 8); ctx.lineTo(-14, 11); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.fillStyle = '#0ea5e9'; ctx.fillRect(-4, -5, 10, 10);
+                    ctx.fillStyle = '#22d3ee'; ctx.fillRect(-16, -3, 5, 6);
+                    if (playerInvincible()) {
+                        ctx.strokeStyle = `rgba(125, 211, 252, ${0.55 + Math.sin(Date.now() / 90) * 0.35})`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath(); ctx.arc(0, 0, 24, 0, Math.PI * 2); ctx.stroke();
+                    }
+                } else if (this.isPresident) {
+                    ctx.fillStyle = '#111827';
+                    ctx.fillRect(-20, -17, 40, 8); ctx.fillRect(-20, 9, 40, 8);
+                    ctx.fillStyle = '#a16207';
+                    ctx.fillRect(-18, -12, 36, 24);
+                    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 3; ctx.strokeRect(-18, -12, 36, 24);
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath(); ctx.moveTo(-8, -18); ctx.lineTo(-4, -26); ctx.lineTo(0, -18); ctx.lineTo(4, -26); ctx.lineTo(8, -18); ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.fillStyle = '#3f0d19';
+                    ctx.fillRect(-15, -12, 30, 24);
+                    ctx.fillStyle = '#be123c';
+                    ctx.fillRect(-12, -9, 24, 18);
+                }
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(MAP_SCALE, MAP_SCALE);
+                ctx.rotate(this.turretAngle);
+                if (this.role === 'player') {
+                    ctx.fillStyle = '#1e40af';
+                    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.fillStyle = '#94a3b8'; ctx.fillRect(0, -3, 26, 6);
+                    ctx.fillStyle = '#fbbf24'; ctx.fillRect(22, -4, 6, 8);
+                    ctx.fillStyle = '#fde68a'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+                    ctx.rotate(-this.turretAngle); ctx.fillText('★', 0, 4);
+                } else if (this.isPresident) {
+                    ctx.fillStyle = '#6b21a8';
+                    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#eab308'; ctx.fillRect(0, -4, 28, 8);
+                } else {
+                    ctx.fillStyle = '#9f1239';
+                    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#64748b'; ctx.fillRect(0, -3, 20, 6);
+                }
+                ctx.restore();
+
+                if (this.role !== 'player') {
+                    ctx.font = `${(this.isPresident ? 16 : 14) * MAP_SCALE}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    let h = this.isPresident ? '👑' : '';
+                    for (let i = 0; i < this.maxHp; i++) h += i < this.hp ? '❤️' : '🖤';
+                    ctx.fillText(h, this.x, this.y - this.radius - 12);
+                }
+            }
+        }
+
+        class Bullet {
+            constructor(ownerId, x, y, angle, damage) {
+                this.ownerId = ownerId; this.x = x; this.y = y; this.damage = damage || 1;
+                const speed = (ownerId === 1 ? 5.2 : 4.1) * MAP_SCALE;
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+                this.radius = 4 * MAP_SCALE; this.bounces = 0;
+            }
+            update() {
+                const oldX = this.x, oldY = this.y;
+                const nextX = this.x + this.vx, nextY = this.y + this.vy;
+                for (const rock of obstacles) {
+                    const dx = nextX - oldX, dy = nextY - oldY;
+                    const lengthSq = dx * dx + dy * dy || 1;
+                    const t = Math.max(0, Math.min(1, ((rock.x - oldX) * dx + (rock.y - oldY) * dy) / lengthSq));
+                    const closestX = oldX + t * dx, closestY = oldY + t * dy;
+                    if (Math.hypot(closestX - rock.x, closestY - rock.y) < rock.r * 1.12 + this.radius) return false;
+                }
+                this.x = nextX; this.y = nextY;
+                const min = BORDER_SIZE + this.radius, max = MAP_SIZE - BORDER_SIZE - this.radius;
+                let bounced = false;
+                if (this.x < min) { this.x = min; this.vx = Math.abs(this.vx); bounced = true; }
+                if (this.x > max) { this.x = max; this.vx = -Math.abs(this.vx); bounced = true; }
+                if (this.y < min) { this.y = min; this.vy = Math.abs(this.vy); bounced = true; }
+                if (this.y > max) { this.y = max; this.vy = -Math.abs(this.vy); bounced = true; }
+                for (const rock of obstacles) {
+                    const dx = this.x - rock.x, dy = this.y - rock.y, dist = Math.hypot(dx, dy);
+                    const minD = rock.r + this.radius;
+                    if (dist < minD) {
+                        const spd = Math.hypot(this.vx, this.vy) || 1;
+                        const nx = dist > 0 ? dx / dist : -this.vx / spd;
+                        const ny = dist > 0 ? dy / dist : -this.vy / spd;
+                        const dot = this.vx * nx + this.vy * ny;
+                        if (dot < 0) { this.vx -= 2 * dot * nx; this.vy -= 2 * dot * ny; bounced = true; }
+                        this.x = rock.x + nx * minD; this.y = rock.y + ny * minD;
+                    }
+                }
+                if (bounced) { this.bounces++; sfx.playBounce(); }
+                return this.bounces <= 1;
+            }
+            draw() {
+                ctx.fillStyle = this.ownerId === 1 ? '#7dd3fc' : '#fb7185';
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        class TinyRocket {
+            constructor(x, y, angle) {
+                this.x = x; this.y = y; this.hp = 1; this.damage = 2; this.radius = 6 * MAP_SCALE;
+                const speed = 3.2 * MAP_SCALE;
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+            }
+            update() {
+                if (p1 && p1.hp > 0) {
+                    const desired = Math.atan2(p1.y - this.y, p1.x - this.x);
+                    const ang = Math.atan2(this.vy, this.vx);
+                    let diff = desired - ang;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    const next = ang + Math.max(-0.06, Math.min(0.06, diff));
+                    const spd = Math.hypot(this.vx, this.vy) || 3.2;
+                    this.vx = Math.cos(next) * spd; this.vy = Math.sin(next) * spd;
+                }
+                this.x += this.vx; this.y += this.vy;
+                spawnParticle(this.x - this.vx, this.y - this.vy, -this.vx * 0.2, -this.vy * 0.2, '#fb923c', 3, 16);
+                if (this.x < BORDER_SIZE || this.x > MAP_SIZE - BORDER_SIZE || this.y < BORDER_SIZE || this.y > MAP_SIZE - BORDER_SIZE) return false;
+                for (const rock of obstacles) {
+                    if (Math.hypot(this.x - rock.x, this.y - rock.y) < rock.r + this.radius) {
+                        explodeAt(this.x, this.y, 22, '#fb923c'); return false;
+                    }
+                }
+                return this.hp > 0;
+            }
+            draw() {
+                const ang = Math.atan2(this.vy, this.vx);
+                ctx.save(); ctx.translate(this.x, this.y); ctx.scale(MAP_SCALE, MAP_SCALE); ctx.rotate(ang);
+                ctx.fillStyle = '#9f1239'; ctx.fillRect(-8, -3, 16, 6);
+                ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(8, -4); ctx.lineTo(14, 0); ctx.lineTo(8, 4); ctx.fill();
+                ctx.fillStyle = '#fb7185'; ctx.fillRect(-10, -2, 4, 4);
+                ctx.restore();
+            }
+        }
+
+        function spawnParticle(x, y, vx, vy, color, size, life) {
+            particles.push({ x, y, vx, vy, color, size, life, max: life });
+        }
+        function explodeAt(x, y, r, color) {
+            blasts.push({ x, y, r: 4, max: r, color, life: 22 });
+            for (let i = 0; i < 18; i++) {
+                const a = Math.random() * Math.PI * 2, s = 1 + Math.random() * 4;
+                spawnParticle(x, y, Math.cos(a) * s, Math.sin(a) * s, color, 2 + Math.random() * 4, 20 + Math.random() * 18);
+            }
+            sfx.playExplosion();
+            shake = Math.max(shake, 8);
+        }
+
+        function startChapter(n) {
+            currentChapter = n;
+            paused = false; mapBlowing = false; quizActive = false; pendingLethal = null;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('quiz-overlay').classList.add('hidden');
+            document.getElementById('game-modal').classList.add('hidden');
+            applyTheme();
+            setupMap();
+            initTrackCanvas();
+
+            p1 = new Tank(1, 70 * MAP_SCALE, 530 * MAP_SCALE, 'player');
+            enemies = []; president = null; bullets = []; tinyRockets = [];
+            coins = []; diamonds = []; coinsCollected = 0; diamondsCollected = 0;
+            particles = []; blasts = []; skyRockets = []; mushrooms = [];
+            detectMeter = 0; radarScans = 0; hiddenStatus = 'HIDDEN'; summonedGuards = 0;
+            lastRocketSalvo = Date.now(); lastRadarBeep = 0;
+            radarGraceUntil = n === 1 ? Date.now() + 5000 : 0;
+
+            const avoid = [p1];
+            if (n === 1) {
+                for (let i = 0; i < 10; i++) {
+                    const coinRadius = 11 * MAP_SCALE;
+                    const pos = getSafeSpawnPos(coinRadius, [...avoid, ...coins, ...radios]);
+                    coins.push({ x: pos.x, y: pos.y, r: coinRadius, spin: Math.random() * 6 });
+                }
+            } else if (n === 2) {
+                const corners = [
+                    { x: 160 * MAP_SCALE, y: 90 * MAP_SCALE },
+                    { x: 460 * MAP_SCALE, y: 90 * MAP_SCALE },
+                    { x: 80 * MAP_SCALE, y: 280 * MAP_SCALE },
+                    { x: 520 * MAP_SCALE, y: 280 * MAP_SCALE },
+                    { x: 300 * MAP_SCALE, y: 90 * MAP_SCALE }
+                ];
+                corners.forEach((spot, i) => {
+                    let pos = spot;
+                    if (!isClearOfSolids(pos.x, pos.y, 20 * MAP_SCALE) || Math.hypot(pos.x - p1.x, pos.y - p1.y) < 220 * MAP_SCALE) {
+                        pos = getSafeSpawnPos(20 * MAP_SCALE, avoid, 240 * MAP_SCALE);
+                    }
+                    const e = new Tank(10 + i, pos.x, pos.y, 'enemy');
+                    enemies.push(e); avoid.push(e);
+                });
+            } else {
+                president = new Tank(99, 300 * MAP_SCALE, 90 * MAP_SCALE, 'president');
+                avoid.push(president);
+                for (let i = 0; i < 5; i++) {
+                    const pos = getSafeSpawnPos(20 * MAP_SCALE, avoid);
+                    const e = new Tank(20 + i, pos.x, pos.y, 'enemy');
+                    enemies.push(e); avoid.push(e);
+                }
+                for (let i = 0; i < 3; i++) {
+                    const diamondRadius = 12 * MAP_SCALE;
+                    const pos = getSafeSpawnPos(diamondRadius, [...avoid, ...diamonds]);
+                    diamonds.push({ x: pos.x, y: pos.y, r: diamondRadius, spin: 0 });
+                }
+            }
+            levelStartTime = Date.now();
+            updateUI();
+            gameActive = true;
+            ensureLoop();
+        }
+
+        function ensureLoop() {
+            if (!loopOn) { loopOn = true; gameLoop(); }
+        }
+
+        function updateCampaignTimer() {
+            if (!campaignDeadline) return;
+            const remaining = Math.max(0, campaignDeadline - Date.now());
+            const seconds = Math.ceil(remaining / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const displaySeconds = String(seconds % 60).padStart(2, '0');
+            document.getElementById('campaign-timer').innerText = `TIME ${minutes}:${displaySeconds}`;
+            if (remaining <= 0 && gameActive && !mapBlowing) {
+                showModal('TIME UP', '兩分鐘戰役時間已到。', 'RETRY', returnToMenu);
+            }
+        }
+
+        setInterval(updateCampaignTimer, 250);
+
+        function updateUI() {
+            if (!p1) return;
+            document.getElementById('hp-text').innerText = `${Math.max(0, p1.hp)}/${p1.maxHp}`;
+            document.getElementById('hp-bar').style.width = `${Math.max(0, p1.hp / p1.maxHp) * 100}%`;
+            document.getElementById('p1-score').innerText = String(cumulativeScore).padStart(4, '0');
+            const reviveTag = campaignReviveUsed ? 'REVIVE USED' : 'REVIVE 1';
+            if (currentChapter === 1) {
+                document.getElementById('hud-objective').innerText = `COINS ${coinsCollected}/10`;
+                document.getElementById('hud-side-label').innerText = 'RADAR';
+                document.getElementById('hud-status').innerText = playerInvincible() ? 'SHIELD' : hiddenStatus;
+                document.getElementById('hud-extra').innerText = playerInvincible()
+                    ? `INVINCIBLE ${Math.max(0, Math.ceil((5000 - (Date.now() - levelStartTime)) / 1000))}s`
+                    : `SCANS ${radarScans}/3 · ${reviveTag}`;
+            } else if (currentChapter === 2) {
+                const left = enemies.filter(e => e.hp > 0).length;
+                document.getElementById('hud-objective').innerText = `DESTROY ALL TANKS`;
+                document.getElementById('hud-side-label').innerText = 'ENEMIES';
+                document.getElementById('hud-status').innerText = `${left}/5`;
+                document.getElementById('hud-extra').innerText = `3 HP · ${reviveTag}`;
+            } else {
+                const left = enemies.filter(e => e.hp > 0).length;
+                const pres = president && president.hp > 0 ? 'ALIVE' : 'DOWN';
+                document.getElementById('hud-objective').innerText = `GEMS ${diamondsCollected}/3`;
+                document.getElementById('hud-side-label').innerText = 'PRESIDENT';
+                document.getElementById('hud-status').innerText = pres;
+                document.getElementById('hud-extra').innerText = `GUARDS ${left}`;
+            }
+        }
+
+        function canBulletHitTank(b, tank) {
+            if (tank.hp <= 0) return false;
+            if (b.ownerId === 1) return tank.id !== 1 || b.bounces > 0;
+            if (tank.id === 1) return true;
+            return tank.id === b.ownerId && b.bounces > 0;
+        }
+
+        function allTargets() {
+            const list = [];
+            if (p1) list.push(p1);
+            enemies.forEach(e => list.push(e));
+            if (president) list.push(president);
+            return list;
+        }
+
+        function applyDamage(tank, dmg) {
+            if (!tank || tank.hp <= 0 || mapBlowing || quizActive) return;
+            if (tank.id === 1 && playerInvincible()) {
+                explodeAt(tank.x, tank.y, 12, '#7dd3fc');
+                return;
+            }
+            const willDie = tank.hp - dmg <= 0;
+            if (willDie && tank.id === 1 && currentChapter <= 2 && !campaignReviveUsed) {
+                pendingLethal = 'revive';
+                startQuiz('revive');
+                return;
+            }
+            if (currentChapter === 3 && willDie && (tank.id === 1 || tank.isPresident)) {
+                pendingLethal = tank.isPresident ? 'president' : 'player';
+                startQuiz(pendingLethal);
+                return;
+            }
+            tank.hp -= dmg;
+            explodeAt(tank.x, tank.y, 18, tank.id === 1 ? '#38bdf8' : '#fb7185');
+            updateUI();
+            if (tank.hp <= 0) onTankDown(tank);
+        }
+
+        function onTankDown(tank) {
+            if (tank.id === 1) {
+                showModal('GAME OVER', '指揮官生命耗盡。', 'RETRY', returnToMenu);
+                return;
+            }
+            cumulativeScore += tank.isPresident ? 2000 : 350;
+            updateUI();
+            if (currentChapter === 2 && enemies.every(e => e.hp <= 0)) {
+                sfx.playPowerup();
+                showModal('CHAPTER CLEARED', '鋼鐵攻勢完成。進入總統之心。', 'CHAPTER III', () => startChapter(3));
+            } else if (currentChapter === 3) {
+                checkChapter3Win();
+            }
+        }
+
+        function checkChapter3Win() {
+            if (diamondsCollected >= 3 && (!president || president.hp <= 0)) {
+                sfx.playPowerup();
+                showModal('CAMPAIGN CLEAR', '鑽石入手，總統倒下。你以智慧與火力完成三章戰役。', 'MENU', returnToMenu);
+            }
+        }
+
+        function checkCollisions() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                let hit = false;
+                for (let r = tinyRockets.length - 1; r >= 0; r--) {
+                    if (b.ownerId === 1 && Math.hypot(b.x - tinyRockets[r].x, b.y - tinyRockets[r].y) < 10) {
+                        explodeAt(tinyRockets[r].x, tinyRockets[r].y, 16, '#fb923c');
+                        tinyRockets.splice(r, 1); bullets.splice(i, 1); hit = true; break;
+                    }
+                }
+                if (hit) continue;
+                for (const tank of allTargets()) {
+                    if (canBulletHitTank(b, tank) && Math.hypot(b.x - tank.x, b.y - tank.y) < tank.radius + b.radius) {
+                        applyDamage(tank, b.damage);
+                        bullets.splice(i, 1); hit = true; break;
+                    }
+                }
+            }
+
+            if (p1 && p1.hp > 0) {
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    if (Math.hypot(p1.x - coins[i].x, p1.y - coins[i].y) < p1.radius + coins[i].r) {
+                        sfx.playCoin(); coins.splice(i, 1); coinsCollected++; cumulativeScore += 150; updateUI();
+                        if (currentChapter === 1 && coinsCollected >= 10) {
+                            sfx.playPowerup();
+                            showModal('CHAPTER CLEARED', '10 枚金幣到手，無線電尚未鎖定你。進入鋼鐵攻勢。', 'CHAPTER II', () => startChapter(2));
+                        }
+                    }
+                }
+                for (let i = diamonds.length - 1; i >= 0; i--) {
+                    if (Math.hypot(p1.x - diamonds[i].x, p1.y - diamonds[i].y) < p1.radius + diamonds[i].r) {
+                        sfx.playDiamond(); diamonds.splice(i, 1); diamondsCollected++; cumulativeScore += 400; updateUI();
+                        checkChapter3Win();
+                    }
+                }
+                for (let i = tinyRockets.length - 1; i >= 0; i--) {
+                    if (Math.hypot(p1.x - tinyRockets[i].x, p1.y - tinyRockets[i].y) < p1.radius + tinyRockets[i].radius) {
+                        applyDamage(p1, tinyRockets[i].damage);
+                        explodeAt(tinyRockets[i].x, tinyRockets[i].y, 24, '#f97316');
+                        tinyRockets.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function angDiff(a, b) {
+            let d = a - b;
+            while (d > Math.PI) d -= Math.PI * 2;
+            while (d < -Math.PI) d += Math.PI * 2;
+            return d;
+        }
+
+        function updateRadios() {
+            if (currentChapter !== 1 || !p1 || p1.hp <= 0) return;
+            radios.forEach(r => { r.angle += r.speed; });
+            if (Date.now() < radarGraceUntil || playerInvincible()) {
+                hiddenStatus = playerInvincible() ? 'SHIELD' : 'HIDDEN';
+                detectMeter = Math.max(0, detectMeter - 0.02);
+                return;
+            }
+            let spotted = false;
+            radios.forEach(r => {
+                const dist = Math.hypot(p1.x - r.x, p1.y - r.y);
+                const dir = Math.atan2(p1.y - r.y, p1.x - r.x);
+                if (dist < r.range && Math.abs(angDiff(dir, r.angle)) < r.cone / 2) {
+                    if (!lineBlocked(r.x, r.y, p1.x, p1.y)) spotted = true;
+                }
+            });
+            if (spotted) {
+                const newScan = hiddenStatus !== 'DETECTED';
+                hiddenStatus = 'DETECTED';
+                if (newScan) {
+                    radarScans++;
+                    updateUI();
+                    if (radarScans >= 3 && !mapBlowing) {
+                        if (!campaignReviveUsed) {
+                            radarGraceUntil = Date.now() + 2500;
+                            hiddenStatus = 'HIDDEN';
+                            startQuiz('revive');
+                        } else {
+                            startCatastrophe();
+                        }
+                    }
+                }
+                if (Date.now() - lastRadarBeep > 180) { sfx.playRadar(); lastRadarBeep = Date.now(); }
+            } else {
+                hiddenStatus = 'HIDDEN';
+            }
+        }
+
+        function startCatastrophe() {
+            mapBlowing = true;
+            paused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            catastropheTime = Date.now();
+            shake = 18; flash = 1;
+            sfx.playAlarm(); sfx.playBigBoom();
+            hiddenStatus = 'LOCK-ON';
+            updateUI();
+            for (let i = 0; i < 10; i++) spawnSkyRocket();
+        }
+
+        function spawnSkyRocket() {
+            skyRockets.push({
+                x: (40 + Math.random() * 520) * MAP_SCALE,
+                y: (-30 - Math.random() * 180) * MAP_SCALE,
+                vx: (-1 + Math.random() * 2) * MAP_SCALE,
+                vy: (4 + Math.random() * 5) * MAP_SCALE,
+                tx: (40 + Math.random() * 520) * MAP_SCALE,
+                ty: (80 + Math.random() * 440) * MAP_SCALE,
+                trail: []
+            });
+            sfx.playWhoosh();
+        }
+
+        function updateCatastrophe() {
+            const t = Date.now() - catastropheTime;
+            shake = 10 + Math.sin(t / 40) * 12;
+            flash = 0.2 + Math.abs(Math.sin(t / 90)) * 0.55;
+            if (t < 2600 && Math.random() < 0.45) spawnSkyRocket();
+            for (let i = skyRockets.length - 1; i >= 0; i--) {
+                const r = skyRockets[i];
+                r.x += r.vx; r.y += r.vy;
+                r.trail.push({ x: r.x, y: r.y });
+                if (r.trail.length > 10) r.trail.shift();
+                if (r.y >= r.ty) {
+                    crazyExplode(r.x, r.y);
+                    skyRockets.splice(i, 1);
+                }
+            }
+            if (Math.random() < 0.35) crazyExplode((50 + Math.random() * 500) * MAP_SCALE, (50 + Math.random() * 500) * MAP_SCALE);
+            if (t > 3800 && gameActive) {
+                mapBlowing = false;
+                showModal('MAP OBLITERATED', '無線電鎖定成功，火箭把整張地圖炸成廢墟。', 'RETRY', returnToMenu);
+            }
+        }
+
+        function crazyExplode(x, y) {
+            sfx.playExplosion();
+            shake = Math.max(shake, 22);
+            flash = Math.min(1, flash + 0.4);
+            blasts.push({ x, y, r: 8, max: 70 + Math.random() * 70, color: '#fb923c', life: 28 });
+            blasts.push({ x, y, r: 4, max: 36, color: '#fff7ed', life: 16 });
+            mushrooms.push({ x, y, h: 6, maxH: 70 + Math.random() * 50, life: 40, cap: 10 });
+            cracks.push({ x, y, a: Math.random() * Math.PI, len: 40 + Math.random() * 90 });
+            trackCtx.strokeStyle = 'rgba(0,0,0,0.55)';
+            trackCtx.lineWidth = 3;
+            trackCtx.beginPath(); trackCtx.moveTo(x, y);
+            trackCtx.lineTo(x + Math.cos(Math.random() * 6) * 50, y + Math.sin(Math.random() * 6) * 50); trackCtx.stroke();
+            for (let i = 0; i < 40; i++) {
+                const a = Math.random() * Math.PI * 2, s = 2 + Math.random() * 7;
+                const colors = ['#fff7ed', '#fdba74', '#f97316', '#b91c1c', '#facc15', '#7f1d1d'];
+                spawnParticle(x, y, Math.cos(a) * s, Math.sin(a) * s - 2, colors[i % colors.length], 3 + Math.random() * 5, 24 + Math.random() * 30);
+            }
+        }
+
+        function updatePresidentRockets() {
+            if (currentChapter !== 3 || !president || president.hp <= 0 || quizActive) return;
+            if (Date.now() - lastRocketSalvo >= 5000) {
+                lastRocketSalvo = Date.now();
+                const ang = Math.atan2((p1 ? p1.y : 300 * MAP_SCALE) - president.y, (p1 ? p1.x : 300 * MAP_SCALE) - president.x);
+                tinyRockets.push(new TinyRocket(
+                    president.x + Math.cos(ang) * 30 * MAP_SCALE,
+                    president.y + Math.sin(ang) * 30 * MAP_SCALE,
+                    ang
+                ));
+                sfx.playWhoosh();
+            }
+        }
+
+        function startQuiz(kind) {
+            quizActive = true; quizKind = kind; paused = false;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            const easy = kind === 'revive';
+            quizData = generateAlgebraQuiz(easy);
+            const seconds = easy ? 30 : 60;
+            document.getElementById('quiz-heading').innerText = `${seconds}s ALGEBRA`;
+            document.getElementById('quiz-question').innerText = `解 x：  ${quizData.q}`;
+            document.getElementById('quiz-context').innerText = kind === 'revive'
+                ? (currentChapter === 1
+                    ? '雷達第三次鎖定。這是第一章與第二章共有的唯一復活機會。答對：取消火箭並繼續。答錯或逾時：地圖被炸毀。'
+                    : '你即將陣亡。這是第一章與第二章共有的唯一復活機會。答對：滿血復活。答錯或逾時：遊戲結束。')
+                : kind === 'player'
+                    ? '你即將陣亡。答對：復活並擊殺總統。答錯：遊戲結束。'
+                    : '總統即將倒下。答對：總統死亡。答錯：召喚 1 輛 3 命護衛坦克保護總統。';
+            document.getElementById('quiz-answer').value = '';
+            document.getElementById('quiz-timer').innerText = String(seconds);
+            document.getElementById('quiz-overlay').classList.remove('hidden');
+            setTimeout(() => document.getElementById('quiz-answer').focus(), 50);
+            quizDeadline = Date.now() + seconds * 1000;
+            if (quizTimerId) clearInterval(quizTimerId);
+            quizTimerId = setInterval(() => {
+                const left = Math.max(0, Math.ceil((quizDeadline - Date.now()) / 1000));
+                document.getElementById('quiz-timer').innerText = String(left);
+                if (left <= 0) { clearInterval(quizTimerId); resolveQuiz(false); }
+            }, 100);
+        }
+
+        function submitQuiz() {
+            if (!quizActive || !quizData) return;
+            const raw = document.getElementById('quiz-answer').value.trim().replace(/x\s*=/i, '');
+            const val = parseInt(raw, 10);
+            resolveQuiz(val === quizData.a);
+        }
+
+        function resolveQuiz(correct) {
+            if (!quizActive) return;
+            quizActive = false;
+            if (quizTimerId) clearInterval(quizTimerId);
+            document.getElementById('quiz-overlay').classList.add('hidden');
+            const kind = quizKind; quizKind = null; quizData = null;
+
+            if (kind === 'revive') {
+                campaignReviveUsed = true;
+                if (correct) {
+                    p1.hp = p1.maxHp;
+                    radarScans = Math.min(radarScans, 2);
+                    radarGraceUntil = Date.now() + 2500;
+                    hiddenStatus = 'HIDDEN';
+                    sfx.playPowerup();
+                    explodeAt(p1.x, p1.y, 28, '#38bdf8');
+                    updateUI();
+                } else if (currentChapter === 1) {
+                    startCatastrophe();
+                } else {
+                    p1.hp = 0;
+                    showModal('GAME OVER', '復活代數答錯，指揮官倒下。', 'RETRY', returnToMenu);
+                }
+            } else if (kind === 'player') {
+                if (correct) {
+                    p1.hp = p1.maxHp;
+                    if (president && president.hp > 0) {
+                        president.hp = 0;
+                        explodeAt(president.x, president.y, 50, '#fbbf24');
+                        cumulativeScore += 2500;
+                    }
+                    sfx.playPowerup();
+                    updateUI();
+                    if (diamondsCollected >= 3) checkChapter3Win();
+                    else updateUI();
+                } else {
+                    p1.hp = 0;
+                    showModal('GAME OVER', '代數答錯，指揮官倒下。', 'RETRY', returnToMenu);
+                }
+            } else {
+                if (correct) {
+                    if (president) {
+                        president.hp = 0;
+                        explodeAt(president.x, president.y, 50, '#fbbf24');
+                        cumulativeScore += 2000;
+                    }
+                    sfx.playPowerup();
+                    updateUI();
+                    checkChapter3Win();
+                } else if (president) {
+                    president.hp = 1;
+                    if (summonedGuards < 5) {
+                        const pos = getSafeSpawnPos(20 * MAP_SCALE, [p1, president, ...enemies]);
+                        const guard = new Tank(40 + summonedGuards, pos.x, pos.y, 'enemy');
+                        guard.maxHp = 3; guard.hp = 3;
+                        enemies.push(guard);
+                        summonedGuards++;
+                        sfx.playAlarm();
+                    }
+                    updateUI();
+                }
+            }
+            pendingLethal = null;
+        }
+
+        function showModal(title, msg, btnText, callback) {
+            gameActive = false; mapBlowing = false; quizActive = false;
+            if (quizTimerId) clearInterval(quizTimerId);
+            document.getElementById('quiz-overlay').classList.add('hidden');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = msg;
+            const btn = document.getElementById('modal-btn');
+            btn.innerText = btnText;
+            btn.onclick = () => { document.getElementById('game-modal').classList.add('hidden'); callback(); };
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+
+        function returnToMenu() {
+            gameActive = false; paused = false; mapBlowing = false; quizActive = false;
+            campaignDeadline = 0;
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('quiz-overlay').classList.add('hidden');
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }
+
+        window.initAndStart = function() {
+            sfx.init();
+            cumulativeScore = 0;
+            campaignReviveUsed = false;
+            campaignDeadline = Date.now() + CAMPAIGN_TIME_LIMIT;
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            startChapter(1);
+        };
+
+        function drawRadio(r) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(34,197,94,0.13)';
+            ctx.beginPath();
+            ctx.moveTo(r.x, r.y);
+            ctx.arc(r.x, r.y, r.range, r.angle - r.cone / 2, r.angle + r.cone / 2);
+            ctx.closePath(); ctx.fill();
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(r.x, r.y);
+            ctx.arc(r.x, r.y, r.range, r.angle - r.cone / 2, r.angle + r.cone / 2);
+            ctx.closePath();
+            ctx.clip();
+            obstacles.forEach(rock => {
+                const dx = rock.x - r.x, dy = rock.y - r.y;
+                const distance = Math.hypot(dx, dy);
+                if (distance <= rock.r || distance - rock.r > r.range) return;
+                const centerAngle = Math.atan2(dy, dx);
+                const shadowRadius = rock.r * 1.12;
+                const halfAngle = Math.asin(Math.min(1, shadowRadius / distance));
+                if (Math.abs(angDiff(centerAngle, r.angle)) > r.cone / 2 + halfAngle) return;
+                const start = centerAngle - halfAngle, end = centerAngle + halfAngle;
+                const tangentDistance = Math.sqrt(distance * distance - shadowRadius * shadowRadius);
+                ctx.beginPath();
+                ctx.moveTo(r.x + Math.cos(start) * tangentDistance, r.y + Math.sin(start) * tangentDistance);
+                ctx.lineTo(r.x + Math.cos(start) * r.range, r.y + Math.sin(start) * r.range);
+                ctx.arc(r.x, r.y, r.range, start, end);
+                ctx.lineTo(r.x + Math.cos(end) * tangentDistance, r.y + Math.sin(end) * tangentDistance);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(239,68,68,0.38)';
+                ctx.fill();
+            });
+            ctx.restore();
+            ctx.beginPath();
+            ctx.moveTo(r.x, r.y);
+            ctx.arc(r.x, r.y, r.range, r.angle - r.cone / 2, r.angle + r.cone / 2);
+            ctx.closePath();
+            ctx.strokeStyle = hiddenStatus === 'DETECTED' ? 'rgba(248,113,113,0.7)' : 'rgba(74,222,128,0.55)';
+            ctx.lineWidth = 2; ctx.stroke();
+            ctx.restore();
+
+            ctx.save(); ctx.translate(r.x, r.y); ctx.scale(MAP_SCALE, MAP_SCALE);
+            ctx.fillStyle = '#1f2937';
+            ctx.fillRect(-6, -4, 12, 18);
+            ctx.fillStyle = '#4b5563';
+            ctx.beginPath(); ctx.moveTo(-12, 16); ctx.lineTo(0, -2); ctx.lineTo(12, 16); ctx.fill();
+            ctx.save(); ctx.translate(0, -6); ctx.rotate(r.angle);
+            ctx.fillStyle = '#86efac';
+            ctx.beginPath(); ctx.ellipse(8, 0, 12, 7, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#f87171'; ctx.fillRect(0, -2, 16, 4);
+            ctx.restore();
+            ctx.restore();
+        }
+
+        function drawScene() {
+            ctx.save();
+            if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+            ctx.clearRect(-20, -20, MAP_SIZE + 40, MAP_SIZE + 40);
+            ctx.drawImage(trackCanvas, 0, 0);
+
+            cracks.forEach(c => {
+                ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(c.x, c.y);
+                ctx.lineTo(c.x + Math.cos(c.a) * c.len, c.y + Math.sin(c.a) * c.len); ctx.stroke();
+            });
+
+            radios.forEach(drawRadio);
+
+            obstacles.forEach(rock => {
+                ctx.fillStyle = currentChapter === 3 ? '#3f3a2a' : '#262833';
+                ctx.beginPath();
+                ctx.moveTo(rock.x + rock.points[0].x, rock.y + rock.points[0].y);
+                rock.points.forEach(p => ctx.lineTo(rock.x + p.x, rock.y + p.y));
+                ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = '#64748b'; ctx.lineWidth = 3; ctx.stroke();
+            });
+
+            coins.forEach(c => {
+                c.spin += 0.08;
+                ctx.save(); ctx.translate(c.x, c.y); ctx.scale(Math.cos(c.spin) * 0.35 + 0.85, 1);
+                ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#92400e'; ctx.font = `${12 * MAP_SCALE}px Press Start 2P`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('$', 0, 1);
+                ctx.restore();
+            });
+
+            diamonds.forEach(d => {
+                d.spin += 0.05;
+                ctx.save(); ctx.translate(d.x, d.y); ctx.scale(MAP_SCALE, MAP_SCALE); ctx.rotate(d.spin);
+                ctx.fillStyle = '#67e8f9';
+                ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(10, 0); ctx.lineTo(0, 14); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#ecfeff';
+                ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(5, 0); ctx.lineTo(0, 4); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            });
+
+            bullets.forEach(b => b.draw());
+            tinyRockets.forEach(r => r.draw());
+            if (p1) p1.draw();
+            enemies.forEach(e => e.draw());
+            if (president) president.draw();
+
+            mushrooms.forEach(m => {
+                ctx.fillStyle = 'rgba(127,29,29,0.55)';
+                ctx.fillRect(m.x - 6, m.y - m.h, 12, m.h);
+                ctx.fillStyle = 'rgba(251,146,60,0.7)';
+                ctx.beginPath(); ctx.ellipse(m.x, m.y - m.h, m.cap, m.cap * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+            });
+
+            blasts.forEach(b => {
+                const g = ctx.createRadialGradient(b.x, b.y, 2, b.x, b.y, b.r);
+                g.addColorStop(0, '#fff7ed'); g.addColorStop(0.4, b.color); g.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+            });
+
+            particles.forEach(p => {
+                ctx.globalAlpha = Math.max(0, p.life / p.max);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                ctx.globalAlpha = 1;
+            });
+
+            skyRockets.forEach(r => {
+                ctx.strokeStyle = 'rgba(253,186,116,0.8)'; ctx.lineWidth = 3;
+                ctx.beginPath();
+                r.trail.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+                ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(r.x, r.y, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(r.x, r.y, 3, 0, Math.PI * 2); ctx.fill();
+            });
+
+            ctx.fillStyle = themeFor(currentChapter).hex;
+            ctx.font = `${10 * MAP_SCALE}px "Press Start 2P"`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const label = `CH ${currentChapter}`;
+            ctx.fillText(label, MAP_SIZE / 2, BORDER_SIZE / 2);
+            ctx.fillText(label, MAP_SIZE / 2, MAP_SIZE - BORDER_SIZE / 2);
+
+            if (Date.now() - levelStartTime < 1400) {
+                ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = `${28 * MAP_SCALE}px "Press Start 2P"`; ctx.textAlign = 'center';
+                ctx.fillText(themeFor(currentChapter).title, MAP_SIZE / 2, MAP_SIZE / 2 - 10);
+                ctx.fillStyle = '#e2e8f0'; ctx.font = '10px "Press Start 2P"';
+                ctx.fillText(currentChapter === 1 ? 'SHIELD 5s' : 'READY', MAP_SIZE / 2, MAP_SIZE / 2 + 28);
+            }
+
+            if (playerInvincible()) {
+                const pulse = 0.12 + Math.sin(Date.now() / 90) * 0.06;
+                ctx.fillStyle = `rgba(56,189,248,${pulse})`;
+                ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+                ctx.fillStyle = '#7dd3fc';
+                ctx.font = '14px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                const left = Math.max(0, Math.ceil((5000 - (Date.now() - levelStartTime)) / 1000));
+                ctx.fillText(`INVINCIBLE ${left}`, MAP_SIZE / 2, 70);
+            }
+
+            if (currentChapter === 1 && hiddenStatus === 'DETECTED') {
+                ctx.fillStyle = `rgba(239,68,68,${0.12 + Math.sin(Date.now() / 80) * 0.08})`;
+                ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+                ctx.fillStyle = '#fecaca'; ctx.font = '16px "Press Start 2P"'; ctx.textAlign = 'center';
+                ctx.fillText('RADAR LOCK', MAP_SIZE / 2, 70);
+            }
+
+            if (flash > 0) {
+                ctx.fillStyle = `rgba(255,240,200,${Math.min(0.85, flash)})`;
+                ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+            }
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            if (gameActive && !mapBlowing) updateCampaignTimer();
+            if (!gameActive && !mapBlowing) { loopOn = false; drawScene(); return; }
+            if (mapBlowing) {
+                updateCatastrophe();
+            } else if (gameActive && !paused && !quizActive) {
+                if (p1) p1.update();
+                enemies.forEach(e => e.update());
+                if (president) president.update();
+                bullets = bullets.filter(b => b.update());
+                tinyRockets = tinyRockets.filter(r => r.update());
+                updateRadios();
+                updatePresidentRockets();
+                checkCollisions();
+            }
+            particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life--; });
+            particles = particles.filter(p => p.life > 0);
+            blasts.forEach(b => { b.r += (b.max - b.r) * 0.2; b.life--; });
+            blasts = blasts.filter(b => b.life > 0);
+            mushrooms.forEach(m => { m.h = Math.min(m.maxH, m.h + 2.4); m.cap = Math.min(42, m.cap + 0.8); m.life--; });
+            mushrooms = mushrooms.filter(m => m.life > 0);
+            shake *= 0.9; if (shake < 0.3) shake = 0;
+            flash *= 0.92; if (flash < 0.02) flash = 0;
+            if (!quizActive && currentChapter === 1) updateUI();
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
