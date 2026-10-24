@@ -74,7 +74,7 @@
             <!-- Title Header -->
             <div class="mt-4">
                 <h1 class="text-5xl sm:text-6xl font-black tracking-wider text-orange-500 spooky-text-shadow font-creepster">
-                    避避鬼 👻
+                    躲避鬼 👻
                 </h1>
                 <p class="text-purple-300 text-lg sm:text-xl mt-3 max-w-md font-bold leading-relaxed px-2">
                     躲避隨機彈跳的吸血鬼與幽靈！<br>
@@ -360,9 +360,11 @@
             const x = (clientX - rect.left) * scaleX;
             const y = (clientY - rect.top) * scaleY;
 
-            // Constrain player square inside canvas bounds
-            player.x = Math.max(player.size / 2, Math.min(canvas.width - player.size / 2, x));
-            player.y = Math.max(player.size / 2, Math.min(canvas.height - player.size / 2, y));
+            // Keep the player within the central 90% of the canvas (5% margin per edge)
+            const marginX = canvas.width * 0.05 + player.size / 2;
+            const marginY = canvas.height * 0.05 + player.size / 2;
+            player.x = Math.max(marginX, Math.min(canvas.width - marginX, x));
+            player.y = Math.max(marginY, Math.min(canvas.height - marginY, y));
 
             // Start movement when user touches/points screen
             if (gameState === STATE_WAITING) {
