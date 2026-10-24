@@ -585,13 +585,6 @@
                         moveX = Math.cos(joystickAngle) * this.speed * joystickPower;
                         moveY = Math.sin(joystickAngle) * this.speed * joystickPower;
                         this.angle = joystickAngle;
-                    } else {
-                        const dist = Math.hypot(mouseX - this.x, mouseY - this.y);
-                        if (dist > 10) {
-                            const angle = Math.atan2(mouseY - this.y, mouseX - this.x);
-                            moveX = Math.cos(angle) * this.speed;
-                            moveY = Math.sin(angle) * this.speed;
-                        }
                     }
 
                     if (isFloatingActive) {
