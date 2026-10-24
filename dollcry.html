@@ -531,7 +531,7 @@ closestBear = bear;
 if (closestBear && minDistance <= CONFIG.bearHitboxX) {
 if (Math.random() <= CONFIG.winProbability) {
 claw.grabbedBear = closestBear;
-claw.willSlip = Math.random() < 0.5 + Math.random() * 0.3;
+claw.willSlip = Math.random() < 0.85;
 claw.slipProgress = 0.5 + Math.random() * 0.3;
 closestBear.isCaught = true;
 }
