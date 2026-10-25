@@ -201,30 +201,6 @@
       background: linear-gradient(180deg, rgba(4, 8, 6, 0.94), rgba(4, 8, 6, 0.72));
     }
 
-    #potTracker {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      z-index: 25;
-      display: none;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      text-align: center;
-      color: #fff;
-      padding: 12px 20px;
-      border: 1px solid rgba(232, 197, 71, 0.65);
-      border-radius: 16px;
-      background: rgba(4, 8, 6, 0.92);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
-      text-shadow: 0 2px 8px #000, 0 0 18px #d4a017;
-    }
-
-    #potTrackerArrow {
-      display: block;
-      font-size: 3.5rem;
-      line-height: 1;
-      color: #e8c547;
-    }
 
   </style>
 </head>
@@ -245,13 +221,8 @@
   </header>
 
   <canvas id="game"></canvas>
-  <div id="potTracker" aria-live="polite">
-    <span id="potTrackerArrow">➤</span>
-    <span>真花盆在這個方向</span>
-  </div>
-
   <div id="potHint" class="pointer-events-none absolute bottom-8 left-1/2 z-20 hidden w-[min(92vw,560px)] -translate-x-1/2 rounded-[var(--radius)] border border-[var(--color-electric)]/50 bg-[#071410]/90 px-6 py-5 text-center backdrop-blur-md hint-glow">
-    <p class="text-lg font-bold leading-relaxed text-[var(--color-electric)] md:text-2xl" id="potHintText">找到真正的花盆，繞著它走三圈，就能取得鑰匙。</p>
+    <p class="text-lg font-bold leading-relaxed text-[var(--color-electric)] md:text-2xl" id="potHintText">找到真正的花盆，繞著它走五圈，就能取得鑰匙。</p>
   </div>
 
   <div id="hud" class="pointer-events-none absolute left-0 right-0 top-[64px] z-20 hidden px-6 py-4">
@@ -343,6 +314,7 @@
     const DECOY_POTS = 20;
     const POT_SKIN_COUNT = 21;
     const HIT_DURATION = 4.1;
+    const POT_LAPS = 5;
 
     if (!CanvasRenderingContext2D.prototype.roundRect) {
       CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) {
@@ -363,8 +335,6 @@
     const goOverlay = document.getElementById('goOverlay');
     const goReason = document.getElementById('goReason');
     const winOverlay = document.getElementById('winOverlay');
-    const potTracker = document.getElementById('potTracker');
-    const potTrackerArrow = document.getElementById('potTrackerArrow');
 
     let W = 0,
       H = 0,
@@ -430,7 +400,6 @@
     let collected, rockVisible, potSpin, potNear;
     let particles, electric, rainbow, shake;
     let timeLeft, grandmaAt, grandmaDone, lastTs;
-    let potTrackerRemaining, potTrackerShown;
     let cinematic, followingGrandma, endingPhase;
     let baseSpeed = 215;
     let grandmaWalkT = 0;
@@ -725,9 +694,6 @@
       rainbow = [];
       shake = 0;
       timeLeft = DURATION;
-      potTrackerRemaining = 0;
-      potTrackerShown = false;
-      potTracker.style.display = 'none';
       document.body.classList.remove('urgent-white');
       grandmaAt = DURATION * (0.4 + Math.random() * 0.2); // elapsed 40%–60%
       grandmaDone = false;
@@ -769,11 +735,6 @@
     function updateHud() {
       const urgent = timeLeft <= 30000 && !collected.pot;
       document.body.classList.toggle('urgent-white', urgent);
-      if (urgent && !potTrackerShown) {
-        potTrackerShown = true;
-        potTrackerRemaining = 10;
-      }
-      if (!urgent) potTrackerRemaining = 0;
       if (!rockVisible && !collected.rock) {
         hudKeys.textContent = `${Math.min(keyCount(), 4)} / 4`;
       } else {
@@ -1108,33 +1069,19 @@
       if (moving) {
         const dx = ax * sp * dt;
         const dy = ay * sp * dt;
-        if (!blocked(player.x + dx, player.y + dy, rad)) {
-          player.x += dx;
-          player.y += dy;
-        } else {
-          if (!blocked(player.x + dx, player.y, rad)) player.x += dx;
-          else {
-            for (const f of [0.7, 0.45, 0.25, 0.12]) {
-              if (!blocked(player.x + dx * f, player.y, rad)) {
-                player.x += dx * f;
-                break;
-              }
-            }
-          }
-          if (!blocked(player.x, player.y + dy, rad)) player.y += dy;
-          else {
-            for (const f of [0.7, 0.45, 0.25, 0.12]) {
-              if (!blocked(player.x, player.y + dy * f, rad)) {
-                player.y += dy * f;
-                break;
-              }
-            }
-          }
-          if (blocked(player.x, player.y, rad)) {
-            const push = depenetrate(player.x, player.y, rad);
-            player.x = push.x;
-            player.y = push.y;
-          }
+        const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 3));
+        const stepX = dx / steps;
+        const stepY = dy / steps;
+
+        // Small axis-separated steps let the player slide past tight wall corners.
+        for (let i = 0; i < steps; i++) {
+          if (!blocked(player.x + stepX, player.y, rad)) player.x += stepX;
+          if (!blocked(player.x, player.y + stepY, rad)) player.y += stepY;
+        }
+        if (blocked(player.x, player.y, rad)) {
+          const push = depenetrate(player.x, player.y, rad);
+          player.x = push.x;
+          player.y = push.y;
         }
         if (grandmaChoice === 'mount' && Math.random() < 0.35) {
           rideDust.push({
@@ -1162,7 +1109,7 @@
         if (potSpin.prev === null) potSpin.prev = ang;
         potSpin.acc += Math.abs(angDiff(ang, potSpin.prev));
         potSpin.prev = ang;
-        if (potSpin.acc >= Math.PI * 2 * 3 - 0.15) collectKey('pot');
+        if (potSpin.acc >= Math.PI * 2 * POT_LAPS - 0.15) collectKey('pot');
         if (Math.random() < 0.6) {
           const a = Math.random() * Math.PI * 2;
           electric.push({
@@ -1173,10 +1120,10 @@
             life: 0.08 + Math.random() * 0.1
           });
         }
-        const laps = Math.min(3, potSpin.acc / (Math.PI * 2));
-        const remain = Math.max(0, 3 - Math.floor(laps + 0.02));
-        potHintText.textContent = remain === 3 ?
-          '找到真正的花盆，繞著它走三圈，就能取得鑰匙。' :
+        const laps = Math.min(POT_LAPS, potSpin.acc / (Math.PI * 2));
+        const remain = Math.max(0, POT_LAPS - Math.floor(laps + 0.02));
+        potHintText.textContent = remain === POT_LAPS ?
+          '找到真正的花盆，繞著它走五圈，就能取得鑰匙。' :
           remain === 0 ?
           '太好了！電光凝聚，花盆鑰匙已到手。' :
           `快成功了！再繞 ${remain} 圈，就能取得鑰匙。`;
@@ -1906,17 +1853,6 @@
       } else if (state === 'ending') {
         cam.x = lerp(cam.x, player.x, 0.12);
         cam.y = lerp(cam.y, player.y, 0.12);
-      }
-
-      if (state === 'playing' && potTrackerRemaining > 0 && !collected.pot) {
-        potTrackerRemaining = Math.max(0, potTrackerRemaining - dt);
-      }
-      const trackingPot = state === 'playing' && potTrackerRemaining > 0 && !collected.pot;
-      potTracker.style.display = trackingPot ? 'block' : 'none';
-      if (trackingPot) {
-        const pot = cellCenter(potCell.c, potCell.r);
-        const angle = Math.atan2(pot.y - player.y, pot.x - player.x);
-        potTrackerArrow.style.transform = `rotate(${angle}rad)`;
       }
 
       updateParticles(dt);
