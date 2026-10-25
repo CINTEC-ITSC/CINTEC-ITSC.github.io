@@ -159,6 +159,23 @@
       text-shadow: 0 2px 4px #000, 0 0 8px #000;
     }
 
+    #potReminder {
+      background: linear-gradient(135deg, #3a2607, #17130a) !important;
+      border: 2px solid #ffd45c !important;
+      box-shadow: 0 10px 36px rgba(0, 0, 0, 0.85), 0 0 26px rgba(255, 212, 92, 0.45);
+      animation: reminderIn 350ms ease-out both;
+    }
+
+    #potReminderText {
+      color: #fff2bf !important;
+      text-shadow: 0 2px 5px #000, 0 0 10px rgba(255, 212, 92, 0.45);
+    }
+
+    @keyframes reminderIn {
+      from { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+
     #startOverlay,
     #grandmaOverlay,
     #msgOverlay,
@@ -223,6 +240,10 @@
   <canvas id="game"></canvas>
   <div id="potHint" class="pointer-events-none absolute bottom-8 left-1/2 z-20 hidden w-[min(92vw,560px)] -translate-x-1/2 rounded-[var(--radius)] border border-[var(--color-electric)]/50 bg-[#071410]/90 px-6 py-5 text-center backdrop-blur-md hint-glow">
     <p class="text-lg font-bold leading-relaxed text-[var(--color-electric)] md:text-2xl" id="potHintText">找到真正的花盆，繞著它走五圈，就能取得鑰匙。</p>
+  </div>
+  <div id="potReminder" role="status" aria-live="polite" class="pointer-events-none absolute left-1/2 top-28 z-30 hidden w-[min(92vw,680px)] -translate-x-1/2 rounded-2xl px-6 py-5 text-center">
+    <p class="mb-1 text-sm font-black tracking-[0.25em] text-[#ffd45c]">月光提示</p>
+    <p id="potReminderText" class="text-lg font-black leading-relaxed md:text-2xl">還有一把鑰匙藏在真正的花盆裡！找到它，繞著它走五圈，就能拿到鑰匙。</p>
   </div>
 
   <div id="hud" class="pointer-events-none absolute left-0 right-0 top-[64px] z-20 hidden px-6 py-4">
@@ -328,6 +349,7 @@
     const hudTime = document.getElementById('hudTime');
     const potHint = document.getElementById('potHint');
     const potHintText = document.getElementById('potHintText');
+    const potReminder = document.getElementById('potReminder');
     const startOverlay = document.getElementById('startOverlay');
     const grandmaOverlay = document.getElementById('grandmaOverlay');
     const msgOverlay = document.getElementById('msgOverlay');
@@ -400,6 +422,8 @@
     let collected, rockVisible, potSpin, potNear;
     let particles, electric, rainbow, shake;
     let timeLeft, grandmaAt, grandmaDone, lastTs;
+    let potReminderTimer = 0;
+    let potReminderShown = false;
     let cinematic, followingGrandma, endingPhase;
     let baseSpeed = 215;
     let grandmaWalkT = 0;
@@ -694,6 +718,9 @@
       rainbow = [];
       shake = 0;
       timeLeft = DURATION;
+      potReminderTimer = 0;
+      potReminderShown = false;
+      potReminder.classList.add('hidden');
       document.body.classList.remove('urgent-white');
       grandmaAt = DURATION * (0.4 + Math.random() * 0.2); // elapsed 40%–60%
       grandmaDone = false;
@@ -1814,6 +1841,11 @@
         } else if (!grandmaDone && (DURATION - timeLeft) >= grandmaAt) {
           openGrandma();
         }
+        if (timeLeft <= 60000 && !potReminderShown && !collected.pot) {
+          potReminderShown = true;
+          potReminderTimer = 20;
+          potReminder.classList.remove('hidden');
+        }
         movePlayer(dt);
         updateWorld(dt);
         cam.tx = player.x;
@@ -1855,6 +1887,10 @@
         cam.y = lerp(cam.y, player.y, 0.12);
       }
 
+      if (potReminderTimer > 0) {
+        potReminderTimer = Math.max(0, potReminderTimer - dt);
+        if (potReminderTimer === 0) potReminder.classList.add('hidden');
+      }
       updateParticles(dt);
       drawWorld();
       requestAnimationFrame(loop);
