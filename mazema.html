@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>進入迷宮 — 無盡迷宮</title>
+  <link rel="stylesheet" href="/theme.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      --color-text: #fff8e8;
+      --color-muted: #d7d2c8;
+      --color-primary-contrast: #17130a;
+      color: #fff8e8;
+      letter-spacing: 0.015em;
+    }
+
+    body p,
+    body h1,
+    body h2,
+    body button,
+    body span {
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+    }
+
+    .hud-panel,
+    .start-card,
+    #grandmaOverlay [data-choice],
+    #msgOverlay > div,
+    #winOverlay > div {
+      border-color: rgba(232, 197, 71, 0.38) !important;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 248, 232, 0.12);
+    }
+
+    #game { position: absolute; inset: 0; display: block; width: 100%; height: 100%; background: #070b0a; }
+
+    .hud-num {
+      font-variant-numeric: tabular-nums;
+    }
+
+    #btnStart {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 240, 180, 0.75);
+      background: linear-gradient(135deg, #ffe38a 0%, #e8b833 48%, #bd7b12 100%);
+      box-shadow: 0 10px 28px rgba(212, 160, 23, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    #btnStart::after {
+      content: '✦';
+      margin-left: 0.65rem;
+      color: #fff8df;
+      text-shadow: 0 0 10px rgba(255, 255, 220, 0.9);
+    }
+
+    #btnStart:hover {
+      transform: translateY(-3px) scale(1.03);
+      filter: brightness(1.08);
+      box-shadow: 0 15px 38px rgba(212, 160, 23, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    }
+
+    #btnStart:focus-visible {
+      outline: 3px solid #fff8df;
+      outline-offset: 4px;
+    }
+
+    #btnStart:active {
+      transform: translateY(0) scale(0.99);
+    }
+
+    .banner-go {
+      font-family: var(--font-heading);
+      font-size: clamp(4.5rem, 14vw, 9rem);
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 40px rgba(226, 61, 61, 0.85), 0 8px 0 #4a1010;
+      animation: goPulse 0.7s ease-in-out infinite alternate;
+    }
+
+    @keyframes goPulse {
+      from {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+
+      to {
+        transform: scale(1.04);
+        filter: brightness(1.15);
+      }
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .card-in {
+      animation: cardIn 0.45s ease both;
+    }
+
+    .card-in:nth-child(2) {
+      animation-delay: 0.08s;
+    }
+
+    .card-in:nth-child(3) {
+      animation-delay: 0.16s;
+    }
+
+    @keyframes sparkle {
+
+      0%,
+      100% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .hint-glow {
+      box-shadow: 0 0 32px rgba(94, 240, 208, 0.35), inset 0 0 24px rgba(94, 240, 208, 0.08);
+      animation: sparkle 1.4s ease-in-out infinite;
+    }
+
+    .gold-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 160, 23, 0.85), transparent);
+    }
+
+    .hud-panel {
+      background-color: rgba(7, 16, 12, 0.94) !important;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(243, 234, 216, 0.1);
+    }
+
+    #potHint {
+      background: #071410 !important;
+      border: 2px solid #5ef0d0 !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95), 0 0 22px rgba(0, 0, 0, 0.8);
+      backdrop-filter: none !important;
+    }
+
+    #potHintText {
+      color: #bafff1 !important;
+      text-shadow: 0 2px 4px #000, 0 0 8px #000;
+    }
+
+    #startOverlay,
+    #grandmaOverlay,
+    #msgOverlay,
+    #goOverlay,
+    #winOverlay {
+      backdrop-filter: none;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    #startOverlay {
+      background-color: rgba(7, 11, 10, 0.96);
+    }
+
+    .start-card,
+    #msgOverlay > div {
+      background-color: rgba(7, 16, 12, 0.98);
+    }
+
+    #grandmaOverlay,
+    #msgOverlay {
+      background-color: rgba(0, 0, 0, 0.9);
+    }
+
+    .brand-moon {
+      box-shadow: 0 0 24px rgba(243, 234, 216, 0.25);
+      animation: sparkle 3.2s ease-in-out infinite;
+    }
+
+    .start-card {
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(212, 160, 23, 0.12);
+    }
+
+    body.urgent-white,
+    body.urgent-white * {
+      color: #fff !important;
+      text-shadow: 0 2px 5px #000, 0 0 10px #000;
+    }
+
+    header {
+      background: linear-gradient(180deg, rgba(4, 8, 6, 0.94), rgba(4, 8, 6, 0.72));
+    }
+
+    #potTracker {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 25;
+      display: none;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      text-align: center;
+      color: #fff;
+      padding: 12px 20px;
+      border: 1px solid rgba(232, 197, 71, 0.65);
+      border-radius: 16px;
+      background: rgba(4, 8, 6, 0.92);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+      text-shadow: 0 2px 8px #000, 0 0 18px #d4a017;
+    }
+
+    #potTrackerArrow {
+      display: block;
+      font-size: 3.5rem;
+      line-height: 1;
+      color: #e8c547;
+    }
+
+  </style>
+</head>
+
+<body class="bg-[var(--color-bg)] text-[var(--color-text)] font-[var(--font-body)]">
+  <header class="pointer-events-none absolute left-0 right-0 top-0 z-30">
+    <div class="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-3">
+        <span class="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-primary-contrast)] font-[var(--font-heading)] shadow-[0_0_24px_rgba(212,160,23,0.35)]">迷宮</span>
+        <div>
+          <p class="text-[10px] font-bold tracking-[0.42em] text-[var(--color-primary)]">MOONLIT GARDEN</p>
+          <p class="text-xl font-black leading-none font-[var(--font-heading)]">無盡迷宮</p>
+        </div>
+      </div>
+      <div class="brand-moon h-8 w-8 rounded-full bg-[#f3ead8]/80"></div>
+    </div>
+    <div class="gold-line mx-6"></div>
+  </header>
+
+  <canvas id="game"></canvas>
+  <div id="potTracker" aria-live="polite">
+    <span id="potTrackerArrow">➤</span>
+    <span>真花盆在這個方向</span>
+  </div>
+
+  <div id="potHint" class="pointer-events-none absolute bottom-8 left-1/2 z-20 hidden w-[min(92vw,560px)] -translate-x-1/2 rounded-[var(--radius)] border border-[var(--color-electric)]/50 bg-[#071410]/90 px-6 py-5 text-center backdrop-blur-md hint-glow">
+    <p class="text-lg font-bold leading-relaxed text-[var(--color-electric)] md:text-2xl" id="potHintText">找到真正的花盆，繞著它走三圈，就能取得鑰匙。</p>
+  </div>
+
+  <div id="hud" class="pointer-events-none absolute left-0 right-0 top-[64px] z-20 hidden px-6 py-4">
+    <div class="mx-auto flex max-w-[1600px] items-start justify-between">
+      <div class="hud-panel rounded-[var(--radius)] border border-[var(--color-primary)]/35 bg-[var(--color-bg)]/78 px-6 py-4 backdrop-blur-md">
+        <p class="text-xs tracking-[0.32em] text-[var(--color-muted)]">已取得的鑰匙</p>
+        <p id="hudKeys" class="hud-num mt-1 font-[var(--font-heading)] text-4xl font-black text-[var(--color-primary)]">0 / 4</p>
+        <p class="mt-2 text-sm text-[var(--color-muted)]">使用 W A S D 或方向鍵移動</p>
+      </div>
+      <div class="hud-panel rounded-[var(--radius)] border border-[var(--color-primary)]/35 bg-[var(--color-bg)]/78 px-6 py-4 text-right backdrop-blur-md">
+        <p class="text-xs tracking-[0.32em] text-[var(--color-muted)]">剩餘時間</p>
+        <p id="hudTime" class="hud-num mt-1 font-[var(--font-heading)] text-4xl font-black text-[var(--color-text)]">02:00</p>
+        <p class="mt-2 text-sm text-[var(--color-muted)]">把握時間，趕在天亮前找到出口</p>
+      </div>
+    </div>
+  </div>
+
+  
+
+  <div id="startOverlay" class="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-bg)]/92 px-6 backdrop-blur-sm">
+    <div class="start-card w-full max-w-xl rounded-[calc(var(--radius)*1.4)] border border-[var(--color-primary)]/30 bg-[var(--color-surface)] p-10 text-center">
+      <p class="text-sm font-bold tracking-[0.35em] text-[var(--color-primary)]">月光下的冒險，即將開始</p>
+      <h1 class="mt-4 font-[var(--font-heading)] text-5xl font-black">無盡迷宮</h1>
+      <div class="gold-line mx-auto mt-6 w-40"></div>
+      <p class="mt-6 text-xl leading-relaxed text-[var(--color-muted)]">在夜色散盡前集齊四把鑰匙，穿越迷宮，抵達頂端出口！</p>
+      <div class="mt-8 space-y-3 rounded-[var(--radius)] border border-[var(--color-primary)]/15 bg-[var(--color-bg)] px-6 py-5 text-left text-lg">
+        <p><span class="font-black text-[var(--color-primary)]">探索方式</span>　按 W A S D 或方向鍵前進</p>
+        <p><span class="font-black text-[var(--color-primary)]">夜行倒數</span>　你有兩分鐘完成挑戰</p>
+        <p><span class="font-black text-[var(--color-primary)]">勝利目標</span>　集齊四把鑰匙，前往迷宮頂端</p>
+      </div>
+      <button id="btnStart" class="mt-8 rounded-[var(--radius)] bg-[var(--color-primary)] px-10 py-4 text-2xl font-black text-[var(--color-primary-contrast)] shadow-[0_12px_40px_rgba(212,160,23,0.35)] transition hover:brightness-110">開始</button>
+    </div>
+  </div>
+
+  <div id="grandmaOverlay" class="absolute inset-0 z-40 hidden items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
+    <div class="w-full max-w-5xl">
+      <p class="mb-3 text-center text-sm font-bold tracking-[0.3em] text-[var(--color-primary)]">意外相逢</p>
+      <h2 class="mb-4 text-center font-[var(--font-heading)] text-4xl font-black md:text-5xl">阿嬤正在穿越迷宮小徑</h2>
+      <div class="gold-line mx-auto mb-10 w-48"></div>
+      <div class="grid gap-5 md:grid-cols-3">
+        <button data-choice="ignore" class="card-in rounded-[calc(var(--radius)*1.2)] border border-[var(--color-primary)]/25 bg-[var(--color-surface)] p-8 text-left transition hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[0_16px_40px_rgba(212,160,23,0.2)]">
+          <p class="text-sm tracking-[0.25em] text-[var(--color-muted)]">選擇一・獨自前行</p>
+          <p class="mt-6 font-[var(--font-heading)] text-4xl font-black">不理會阿嬤</p>
+        </button>
+        <button data-choice="carry" class="card-in rounded-[calc(var(--radius)*1.2)] border border-[var(--color-primary)]/25 bg-[var(--color-surface)] p-8 text-left transition hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[0_16px_40px_rgba(212,160,23,0.2)]">
+          <p class="text-sm tracking-[0.25em] text-[var(--color-muted)]">選擇二・善意相助</p>
+          <p class="mt-6 font-[var(--font-heading)] text-4xl font-black">背阿嬤前往出口</p>
+        </button>
+        <button data-choice="mount" class="card-in rounded-[calc(var(--radius)*1.2)] border border-[var(--color-primary)]/25 bg-[var(--color-surface)] p-8 text-left transition hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[0_16px_40px_rgba(212,160,23,0.2)]">
+          <p class="text-sm tracking-[0.25em] text-[var(--color-muted)]">選擇三・奇妙冒險</p>
+          <p class="mt-6 font-[var(--font-heading)] text-4xl font-black">騎上阿嬤前往出口</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="msgOverlay" class="absolute inset-0 z-40 hidden items-center justify-center bg-black/60 px-6 backdrop-blur-sm">
+    <div class="w-full max-w-2xl rounded-[calc(var(--radius)*1.4)] border border-[var(--color-primary)]/40 bg-[var(--color-surface)] p-10 text-center">
+      <p class="text-sm tracking-[0.3em] text-[var(--color-primary)]">月光傳來的提示</p>
+      <p id="msgText" class="mt-5 font-[var(--font-heading)] text-3xl font-black leading-snug md:text-4xl"></p>
+    </div>
+  </div>
+
+  <div id="goOverlay" class="absolute inset-0 z-50 hidden items-center justify-center bg-black/85 px-6">
+    <div class="text-center">
+      <p class="banner-go font-black text-[var(--color-danger)]">GAME OVER</p>
+      <p id="goReason" class="mt-6 text-2xl text-[var(--color-muted)]"></p>
+      <button id="btnAgain" class="pointer-events-auto mt-10 rounded-[var(--radius)] bg-[var(--color-primary)] px-10 py-4 text-2xl font-black text-[var(--color-primary-contrast)]">重新挑戰</button>
+    </div>
+  </div>
+
+  <div id="winOverlay" class="absolute inset-0 z-50 hidden items-center justify-center bg-[#070b0a]/90 px-6">
+    <div class="max-w-xl text-center">
+      <p class="text-sm font-bold tracking-[0.35em] text-[var(--color-primary)]">月光為你照亮歸途</p>
+      <h2 class="mt-4 font-[var(--font-heading)] text-6xl font-black text-[var(--color-primary)]">勇闖迷宮成功！</h2>
+      <p id="winText" class="mt-6 text-2xl leading-relaxed text-[var(--color-muted)]">五把鑰匙齊了。綠籬向兩旁退去，月光鋪成歸路。</p>
+      <button id="btnWinAgain" class="mt-10 rounded-[var(--radius)] bg-[var(--color-primary)] px-10 py-4 text-2xl font-black text-[var(--color-primary-contrast)]">再次踏上旅程</button>
+    </div>
+  </div>
+
+  <script>
+    const COLS = 13;
+    const ROWS = 24;
+    const TILE = 42;
+    const GW = COLS * 2 + 1;
+    const GH = ROWS * 2 + 1;
+    const DURATION = 120000;
+    const KEYS_NEEDED = 4;
+    const DECOY_POTS = 20;
+    const POT_SKIN_COUNT = 21;
+    const HIT_DURATION = 4.1;
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) {
+        this.rect(x, y, w, h);
+      };
+    }
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const hud = document.getElementById('hud');
+    const hudKeys = document.getElementById('hudKeys');
+    const hudTime = document.getElementById('hudTime');
+    const potHint = document.getElementById('potHint');
+    const potHintText = document.getElementById('potHintText');
+    const startOverlay = document.getElementById('startOverlay');
+    const grandmaOverlay = document.getElementById('grandmaOverlay');
+    const msgOverlay = document.getElementById('msgOverlay');
+    const msgText = document.getElementById('msgText');
+    const goOverlay = document.getElementById('goOverlay');
+    const goReason = document.getElementById('goReason');
+    const winOverlay = document.getElementById('winOverlay');
+    const potTracker = document.getElementById('potTracker');
+    const potTrackerArrow = document.getElementById('potTrackerArrow');
+
+    let W = 0,
+      H = 0,
+      dpr = 1;
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const keysDown = Object.create(null);
+    window.addEventListener('keydown', (e) => {
+      keysDown[e.key.toLowerCase()] = true;
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) e.preventDefault();
+    });
+    window.addEventListener('keyup', (e) => {
+      keysDown[e.key.toLowerCase()] = false;
+    });
+
+    function rand(n) {
+      return Math.floor(Math.random() * n);
+    }
+
+    function shuffle(a) {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = rand(i + 1);
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function easeInOut(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    function angDiff(a, b) {
+      let d = a - b;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return d;
+    }
+
+    function cellCenter(c, r) {
+      return {
+        x: (c + 0.5) * TILE,
+        y: (r + 0.5) * TILE
+      };
+    }
+
+    let grid, startCell, exitCell, potCell, rockCell, hiddenKeyCells;
+    let decoyPots, realPotSkin;
+    let player, cam, state, speedMul, grandmaChoice;
+    let collected, rockVisible, potSpin, potNear;
+    let particles, electric, rainbow, shake;
+    let timeLeft, grandmaAt, grandmaDone, lastTs;
+    let potTrackerRemaining, potTrackerShown;
+    let cinematic, followingGrandma, endingPhase;
+    let baseSpeed = 215;
+    let grandmaWalkT = 0;
+    let grandmaWalkFrom = null;
+    let grandmaWalkTo = null;
+    let hitT = 0;
+    let rideDust = [];
+    let audioCtx = null;
+
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playSiren() {
+      const ac = ensureAudio();
+      const t0 = ac.currentTime;
+      const osc = ac.createOscillator();
+      const osc2 = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'sawtooth';
+      osc2.type = 'square';
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ac.destination);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.12, t0 + 0.05);
+      gain.gain.setValueAtTime(0.12, t0 + 1.6);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 2);
+      for (let i = 0; i < 8; i++) {
+        const t = t0 + i * 0.25;
+        osc.frequency.setValueAtTime(i % 2 === 0 ? 780 : 520, t);
+        osc2.frequency.setValueAtTime(i % 2 === 0 ? 390 : 260, t);
+      }
+      osc.start(t0);
+      osc2.start(t0);
+      osc.stop(t0 + 2);
+      osc2.stop(t0 + 2);
+    }
+
+    function generateMaze() {
+      grid = Array.from({
+        length: GH
+      }, () => Array(GW).fill(1));
+      const visited = Array.from({
+        length: ROWS
+      }, () => Array(COLS).fill(false));
+
+      function carve(cc, cr) {
+        visited[cr][cc] = true;
+        grid[cr * 2 + 1][cc * 2 + 1] = 0;
+        const dirs = shuffle([
+          [0, -1],
+          [0, 1],
+          [-1, 0],
+          [1, 0]
+        ]);
+        for (const [dx, dy] of dirs) {
+          const nc = cc + dx,
+            nr = cr + dy;
+          if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || visited[nr][nc]) continue;
+          grid[cr * 2 + 1 + dy][cc * 2 + 1 + dx] = 0;
+          carve(nc, nr);
+        }
+      }
+      carve(Math.floor(COLS / 2), ROWS - 1);
+      startCell = { c: Math.floor(GW / 2), r: GH - 2 };
+      exitCell = { c: Math.floor(GW / 2), r: 1 };
+      grid[startCell.r][startCell.c] = 0;
+      grid[exitCell.r][exitCell.c] = 0;
+      grid[GH - 1][startCell.c] = 1;
+      grid[0][exitCell.c] = 0;
+      for (let i = 0; i < 22; i++) {
+        const r = 1 + rand(GH - 2);
+        const c = 1 + rand(GW - 2);
+        if (r === 0 || c === 0 || r === GH - 1 || c === GW - 1) continue;
+        grid[r][c] = 0;
+      }
+      for (let k = 0; k < 4; k++) {
+        const c = 3 + rand(GW - 6);
+        const odd = c % 2 === 1 ? c : c + 1;
+        for (let r = 1; r < GH - 1; r++) {
+          if (Math.random() < 0.42) grid[r][odd] = 0;
+        }
+      }
+
+      function distCells(a, b) {
+        return Math.hypot(a.c - b.c, a.r - b.r);
+      }
+
+      function carveCourtyard(cell, rad) {
+        for (let r = cell.r - rad; r <= cell.r + rad; r++) {
+          for (let c = cell.c - rad; c <= cell.c + rad; c++) {
+            if (r > 0 && r < GH - 1 && c > 0 && c < GW - 1) grid[r][c] = 0;
+          }
+        }
+      }
+
+      function isReserved(c, r, extra) {
+        if (c === startCell.c && r === startCell.r) return true;
+        if (c === exitCell.c && r === exitCell.r) return true;
+        if (extra && extra.some(p => p.c === c && p.r === r)) return true;
+        return false;
+      }
+
+      const longest = Math.max(GW, GH);
+      const minSep = longest * 0.35;
+      const maxSep = longest * 0.45;
+      const inBand = (d) => d >= minSep && d <= maxSep;
+
+      const openPool = [];
+      for (let r = 3; r < GH - 3; r++) {
+        for (let c = 2; c < GW - 2; c++) {
+          if (grid[r][c] !== 0) continue;
+          if (isReserved(c, r)) continue;
+          const distStart = Math.abs(c - startCell.c) + Math.abs(r - startCell.r);
+          const distExit = Math.abs(c - exitCell.c) + Math.abs(r - exitCell.r);
+          if (distStart < 5 || distExit < 3) continue;
+          openPool.push({ c, r });
+        }
+      }
+      shuffle(openPool);
+
+      potCell = null;
+      hiddenKeyCells = [];
+      const tryPlaceTriangle = () => {
+        const potsTry = openPool.slice(0, Math.min(openPool.length, 70));
+        for (const pot of potsTry) {
+          const keysA = [];
+          for (const p of openPool) {
+            if (p === pot) continue;
+            if (inBand(distCells(pot, p))) keysA.push(p);
+          }
+          if (keysA.length < 2) continue;
+          shuffle(keysA);
+          const n = Math.min(keysA.length, 28);
+          for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+              if (inBand(distCells(keysA[i], keysA[j]))) {
+                return { pot, k1: keysA[i], k2: keysA[j] };
+              }
+            }
+          }
+        }
+        return null;
+      };
+
+      let trio = tryPlaceTriangle();
+      if (!trio) {
+        const scored = [];
+        for (let i = 0; i < Math.min(openPool.length, 80); i++) {
+          for (let j = i + 1; j < Math.min(openPool.length, 80); j++) {
+            for (let k = j + 1; k < Math.min(openPool.length, 80); k++) {
+              const a = openPool[i], b = openPool[j], c = openPool[k];
+              const d1 = distCells(a, b), d2 = distCells(a, c), d3 = distCells(b, c);
+              const mid = (minSep + maxSep) / 2;
+              const err = Math.abs(d1 - mid) + Math.abs(d2 - mid) + Math.abs(d3 - mid);
+              scored.push({ err, a, b, c });
+            }
+          }
+        }
+        scored.sort((x, y) => x.err - y.err);
+        if (scored.length) trio = { pot: scored[0].a, k1: scored[0].b, k2: scored[0].c };
+      }
+
+      if (trio) {
+        potCell = { c: trio.pot.c, r: trio.pot.r };
+        hiddenKeyCells = [{ c: trio.k1.c, r: trio.k1.r }, { c: trio.k2.c, r: trio.k2.r }];
+      } else {
+        potCell = openPool[0] || { c: Math.floor(GW / 2), r: Math.floor(GH / 2) };
+        hiddenKeyCells = [
+          openPool[1] || { c: 3, r: 8 },
+          openPool[2] || { c: GW - 4, r: GH - 10 }
+        ];
+      }
+
+      carveCourtyard(potCell, 2);
+      grid[potCell.r][potCell.c] = 0;
+      hiddenKeyCells.forEach((k) => { grid[k.r][k.c] = 0; });
+
+      const skinBag = shuffle([...Array(POT_SKIN_COUNT).keys()]);
+      realPotSkin = skinBag[0];
+
+      rockCell = {
+        c: startCell.c,
+        r: startCell.r
+      };
+      const rockOptions = [];
+      for (let r = GH - 6; r < GH - 1; r++) {
+        for (let c = 1; c < GW - 1; c++) {
+          if (grid[r][c] === 0 && !(c === startCell.c && r === startCell.r) && !(c === potCell.c && r === potCell.r) &&
+            !hiddenKeyCells.some(k => k.c === c && k.r === r)) {
+            rockOptions.push({ c, r });
+          }
+        }
+      }
+      rockCell = rockOptions.length ? rockOptions[rand(rockOptions.length)] : {
+        c: Math.max(1, startCell.c - 2),
+        r: startCell.r
+      };
+      if (grid[rockCell.r][rockCell.c] !== 0) {
+        grid[rockCell.r][rockCell.c] = 0;
+      }
+
+      const taken = (c, r) => {
+        if (c === startCell.c && r === startCell.r) return true;
+        if (c === exitCell.c && r === exitCell.r) return true;
+        if (c === potCell.c && r === potCell.r) return true;
+        if (c === rockCell.c && r === rockCell.r) return true;
+        if (hiddenKeyCells.some(k => k.c === c && k.r === r)) return true;
+        if (decoyPots && decoyPots.some(p => p.c === c && p.r === r)) return true;
+        return false;
+      };
+
+      function roomy(c, r) {
+        let open = 0;
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nr = r + dr, nc = c + dc;
+          if (nr > 0 && nr < GH - 1 && nc > 0 && nc < GW - 1 && grid[nr][nc] === 0) open++;
+        }
+        return open >= 3;
+      }
+
+      decoyPots = [];
+      const decoyCandidates = [];
+      for (let r = 2; r < GH - 2; r++) {
+        for (let c = 1; c < GW - 1; c++) {
+          if (grid[r][c] !== 0) continue;
+          if (taken(c, r)) continue;
+          if (Math.abs(c - potCell.c) + Math.abs(r - potCell.r) < 4) continue;
+          decoyCandidates.push({ c, r, room: roomy(c, r) });
+        }
+      }
+      const roomyFirst = [];
+      const rest = [];
+      for (const cell of decoyCandidates) (cell.room ? roomyFirst : rest).push(cell);
+      shuffle(roomyFirst);
+      shuffle(rest);
+      for (const cell of roomyFirst.concat(rest)) {
+        if (decoyPots.length >= DECOY_POTS) break;
+        if (decoyPots.some(p => Math.abs(p.c - cell.c) + Math.abs(p.r - cell.r) < 3)) continue;
+        if (!cell.room) carveCourtyard(cell, 1);
+        decoyPots.push({ c: cell.c, r: cell.r, skin: skinBag[decoyPots.length + 1] });
+      }
+      let guard = 0;
+      while (decoyPots.length < DECOY_POTS && guard++ < 500) {
+        const c = 1 + rand(GW - 2), r = 2 + rand(GH - 4);
+        if (taken(c, r)) continue;
+        grid[r][c] = 0;
+        carveCourtyard({ c, r }, 1);
+        decoyPots.push({ c, r, skin: skinBag[decoyPots.length + 1] });
+      }
+    }
+
+    function resetRun() {
+      generateMaze();
+      const s = cellCenter(startCell.c, startCell.r);
+      player = {
+        x: s.x,
+        y: s.y,
+        vx: 0,
+        vy: 0,
+        facing: 0,
+        bob: 0
+      };
+      cam = {
+        x: player.x,
+        y: player.y,
+        zoom: 1.15,
+        tx: player.x,
+        ty: player.y,
+        tz: 1.15
+      };
+      state = 'title';
+      speedMul = 1;
+      grandmaChoice = null;
+      collected = {
+        hidden: [false, false],
+        pot: false,
+        exit: false,
+        rock: false
+      };
+      rockVisible = false;
+      potSpin = {
+        prev: null,
+        acc: 0
+      };
+      potNear = false;
+      particles = [];
+      electric = [];
+      rainbow = [];
+      shake = 0;
+      timeLeft = DURATION;
+      potTrackerRemaining = 0;
+      potTrackerShown = false;
+      potTracker.style.display = 'none';
+      document.body.classList.remove('urgent-white');
+      grandmaAt = DURATION * (0.4 + Math.random() * 0.2); // elapsed 40%–60%
+      grandmaDone = false;
+      cinematic = null;
+      followingGrandma = false;
+      endingPhase = 'none';
+      lastTs = null;
+      hitT = 0;
+      rideDust = [];
+      hud.classList.add('hidden');
+      potHint.classList.add('hidden');
+      startOverlay.classList.remove('hidden');
+      startOverlay.classList.add('flex');
+      grandmaOverlay.classList.add('hidden');
+      grandmaOverlay.classList.remove('flex');
+      msgOverlay.classList.add('hidden');
+      msgOverlay.classList.remove('flex');
+      goOverlay.classList.add('hidden');
+      goOverlay.classList.remove('flex');
+      winOverlay.classList.add('hidden');
+      winOverlay.classList.remove('flex');
+      updateHud();
+    }
+
+    function keyCount() {
+      let n = 0;
+      if (collected.hidden[0]) n++;
+      if (collected.hidden[1]) n++;
+      if (collected.pot) n++;
+      if (collected.exit) n++;
+      if (collected.rock) n++;
+      return n;
+    }
+
+    function fourKeys() {
+      return collected.hidden[0] && collected.hidden[1] && collected.pot && collected.exit;
+    }
+
+    function updateHud() {
+      const urgent = timeLeft <= 30000 && !collected.pot;
+      document.body.classList.toggle('urgent-white', urgent);
+      if (urgent && !potTrackerShown) {
+        potTrackerShown = true;
+        potTrackerRemaining = 10;
+      }
+      if (!urgent) potTrackerRemaining = 0;
+      if (!rockVisible && !collected.rock) {
+        hudKeys.textContent = `${Math.min(keyCount(), 4)} / 4`;
+      } else {
+        hudKeys.textContent = collected.rock ? '5 / 5' : '4 / 5';
+      }
+      const sec = Math.max(0, Math.ceil(timeLeft / 1000));
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      hudTime.textContent = `${m}:${s}`;
+      hudTime.style.color = sec <= 20 ? '#e23d3d' : 'var(--color-text)';
+    }
+
+    function tileAt(x, y) {
+      const c = Math.floor(x / TILE);
+      const r = Math.floor(y / TILE);
+      if (c < 0 || r < 0 || c >= GW || r >= GH) return 1;
+      return grid[r][c];
+    }
+
+    function circleHitsWall(x, y, rad) {
+      const c0 = Math.max(0, Math.floor((x - rad) / TILE));
+      const c1 = Math.min(GW - 1, Math.floor((x + rad) / TILE));
+      const r0 = Math.max(0, Math.floor((y - rad) / TILE));
+      const r1 = Math.min(GH - 1, Math.floor((y + rad) / TILE));
+      const rr = rad * rad;
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          if (grid[r][c] !== 1) continue;
+          const left = c * TILE, right = left + TILE;
+          const top = r * TILE, bottom = top + TILE;
+          const cx = Math.max(left, Math.min(x, right));
+          const cy = Math.max(top, Math.min(y, bottom));
+          const dx = x - cx, dy = y - cy;
+          if (dx * dx + dy * dy < rr) return true;
+        }
+      }
+      return false;
+    }
+
+    function blocked(x, y, rad) {
+      return circleHitsWall(x, y, rad);
+    }
+
+    function depenetrate(x, y, rad) {
+      if (!blocked(x, y, rad)) return { x, y };
+      for (let d = 2; d <= TILE; d += 2) {
+        for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2;
+          const nx = x + Math.cos(a) * d;
+          const ny = y + Math.sin(a) * d;
+          if (!blocked(nx, ny, rad)) return { x: nx, y: ny };
+        }
+      }
+      return { x, y };
+    }
+
+    function nearCell(cell, dist) {
+      const p = cellCenter(cell.c, cell.r);
+      const dx = player.x - p.x,
+        dy = player.y - p.y;
+      return Math.hypot(dx, dy) < dist;
+    }
+
+    function spawnBurst(x, y, color, n, speed) {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const v = speed * (0.4 + Math.random());
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(a) * v,
+          vy: Math.sin(a) * v,
+          life: 0.5 + Math.random() * 0.6,
+          max: 1,
+          color,
+          size: 2 + Math.random() * 3
+        });
+      }
+    }
+
+    function showMessage(text, ms) {
+      msgText.textContent = text;
+      msgOverlay.classList.remove('hidden');
+      msgOverlay.classList.add('flex');
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          msgOverlay.classList.add('hidden');
+          msgOverlay.classList.remove('flex');
+          resolve();
+        }, ms);
+      });
+    }
+
+    function gameOver(reason) {
+      if (state === 'gameover' || state === 'win') return;
+      state = 'gameover';
+      playSiren();
+      goReason.textContent = reason || '';
+      goOverlay.classList.remove('hidden');
+      goOverlay.classList.add('flex');
+      hud.classList.add('hidden');
+      potHint.classList.add('hidden');
+      grandmaOverlay.classList.add('hidden');
+      grandmaOverlay.classList.remove('flex');
+    }
+
+    function winGame() {
+      if (state === 'win' || state === 'gameover') return;
+      state = 'win';
+      const winText = document.getElementById('winText');
+      winText.textContent = grandmaChoice === 'carry'
+        ? '阿嬤把最後一把鑰匙放進你掌心。綠籬向兩旁退去，月光鋪成歸路。'
+        : '五把鑰匙齊了。綠籬向兩旁退去，月光鋪成歸路。';
+      winOverlay.classList.remove('hidden');
+      winOverlay.classList.add('flex');
+      hud.classList.add('hidden');
+      potHint.classList.add('hidden');
+    }
+
+    async function startCinematic() {
+      state = 'cinematic';
+      cinematic = null;
+      potHint.classList.add('hidden');
+      await showMessage('四把鑰匙已齊。回到起點，尋找最後一把鑰匙。', 2800);
+      if (state !== 'cinematic') return;
+      const rock = cellCenter(rockCell.c, rockCell.r);
+      const from = { x: player.x, y: player.y, z: cam.zoom };
+      cinematic = { t: 0, phase: 'out', from, rock };
+    }
+
+    function tickCinematic(dt) {
+      const cin = cinematic;
+      if (!cin) return;
+      cin.t += dt;
+      const rock = cin.rock;
+      if (cin.phase === 'out') {
+        const t = easeInOut(Math.min(1, cin.t / 1.1));
+        cam.zoom = lerp(cin.from.z, 0.42, t);
+        cam.x = lerp(cin.from.x, (cin.from.x + rock.x) / 2, t * 0.35);
+        cam.y = lerp(cin.from.y, (cin.from.y + rock.y) / 2, t * 0.35);
+        if (cin.t >= 1.1) {
+          cin.phase = 'fly';
+          cin.t = 0;
+        }
+      } else if (cin.phase === 'fly') {
+        const t = easeInOut(Math.min(1, cin.t / 2.4));
+        cam.x = lerp(cin.from.x, rock.x, t);
+        cam.y = lerp(cin.from.y, rock.y, t);
+        cam.zoom = lerp(0.42, 0.38, t);
+        if (cin.t >= 2.4) {
+          cin.phase = 'in';
+          cin.t = 0;
+        }
+      } else if (cin.phase === 'in') {
+        const t = easeInOut(Math.min(1, cin.t / 0.9));
+        cam.x = rock.x;
+        cam.y = rock.y;
+        cam.zoom = lerp(0.38, 1.55, t);
+        if (cin.t >= 0.9) {
+          cin.phase = 'stars';
+          cin.t = 0;
+          rockVisible = true;
+          updateHud();
+        }
+      } else if (cin.phase === 'stars') {
+        cam.x = rock.x;
+        cam.y = rock.y;
+        cam.zoom = 1.55;
+        if (cin.t < 2) {
+          for (let i = 0; i < 6; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const v = 40 + Math.random() * 120;
+            const hue = Math.floor(Math.random() * 360);
+            rainbow.push({
+              x: rock.x,
+              y: rock.y,
+              vx: Math.cos(a) * v,
+              vy: Math.sin(a) * v - 30,
+              life: 0.8 + Math.random() * 0.7,
+              hue,
+              size: 4 + Math.random() * 5,
+              rot: Math.random() * 6
+            });
+          }
+        }
+        if (cin.t >= 2) {
+          cin.phase = 'back';
+          cin.t = 0;
+        }
+      } else if (cin.phase === 'back') {
+        const t = easeInOut(Math.min(1, cin.t / 1.2));
+        cam.x = lerp(rock.x, player.x, t);
+        cam.y = lerp(rock.y, player.y, t);
+        cam.zoom = lerp(1.55, 1.15, t);
+        if (cin.t >= 1.2) {
+          cinematic = null;
+          state = 'playing';
+          if (grandmaChoice === 'carry') {
+            endingPhase = 'carryToExit';
+            if (nearCell(exitCell, TILE * 1.5)) giveFinalKeyByGrandma();
+          } else {
+            endingPhase = 'needRock';
+          }
+        }
+      }
+    }
+
+    function collectKey(kind, idx) {
+      if (kind === 'hidden') {
+        if (collected.hidden[idx]) return;
+        collected.hidden[idx] = true;
+      } else if (kind === 'pot') {
+        if (collected.pot) return;
+        collected.pot = true;
+      } else if (kind === 'exit') {
+        if (collected.exit) return;
+        collected.exit = true;
+      } else if (kind === 'rock') {
+        if (collected.rock) return;
+        collected.rock = true;
+      }
+      const p = kind === 'hidden' ? cellCenter(hiddenKeyCells[idx].c, hiddenKeyCells[idx].r) :
+        kind === 'pot' ? cellCenter(potCell.c, potCell.r) :
+        kind === 'exit' ? cellCenter(exitCell.c, exitCell.r) :
+        cellCenter(rockCell.c, rockCell.r);
+      spawnBurst(p.x, p.y, '#d4a017', 28, 90);
+      updateHud();
+    }
+
+    function maybeTriggerFourKeys() {
+      if (endingPhase !== 'none') return;
+      if (!fourKeys()) return;
+      endingPhase = 'cinematic';
+      startCinematic();
+    }
+
+    function openGrandma() {
+      if (grandmaDone || (state !== 'playing' && state !== 'grandmaWalk')) return;
+      grandmaDone = true;
+      state = 'grandmaWalk';
+      grandmaWalkT = 0;
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      grandmaWalkFrom = { x: player.x + dir * 90, y: player.y - 8 };
+      grandmaWalkTo = { x: player.x - dir * 40, y: player.y - 6 };
+      followingGrandma = false;
+    }
+
+    function applyChoice(choice) {
+      grandmaChoice = choice;
+      grandmaOverlay.classList.add('hidden');
+      grandmaOverlay.classList.remove('flex');
+      if (choice === 'ignore') {
+        state = 'hit';
+        hitT = 0;
+        shake = 6;
+        followingGrandma = false;
+        return;
+      }
+      if (choice === 'carry') {
+        speedMul = 0.8;
+        followingGrandma = true;
+        state = 'playing';
+        if (rockVisible && nearCell(exitCell, TILE * 1.6)) {
+          giveFinalKeyByGrandma();
+        } else if (rockVisible) {
+          endingPhase = 'carryToExit';
+        }
+        return;
+      }
+      if (choice === 'mount') {
+        speedMul = 1.2;
+        followingGrandma = true;
+        state = 'playing';
+        if (collected.rock && nearCell(exitCell, TILE * 1.3)) {
+          endingPhase = 'bite';
+          state = 'ending';
+          shake = 16;
+          setTimeout(() => gameOver('阿嬤在出口處咬了你一口。'), 900);
+        } else if (rockVisible && collected.rock) {
+          endingPhase = 'needExit';
+        } else if (rockVisible) {
+          endingPhase = 'needRock';
+        }
+        return;
+      }
+      state = 'playing';
+    }
+
+    document.querySelectorAll('#grandmaOverlay [data-choice]').forEach((btn) => {
+      btn.addEventListener('click', () => applyChoice(btn.getAttribute('data-choice')));
+    });
+
+    function startPlaying() {
+      ensureAudio();
+      startOverlay.classList.add('hidden');
+      startOverlay.classList.remove('flex');
+      hud.classList.remove('hidden');
+      state = 'playing';
+      lastTs = null;
+    }
+    document.getElementById('btnStart').addEventListener('click', startPlaying);
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && state === 'title') startPlaying();
+    });
+    document.getElementById('btnAgain').addEventListener('click', () => {
+      resetRun();
+    });
+    document.getElementById('btnWinAgain').addEventListener('click', () => {
+      resetRun();
+    });
+
+    function movePlayer(dt) {
+      if (state !== 'playing') return;
+      let ax = 0,
+        ay = 0;
+      if (keysDown['w'] || keysDown['arrowup']) ay -= 1;
+      if (keysDown['s'] || keysDown['arrowdown']) ay += 1;
+      if (keysDown['a'] || keysDown['arrowleft']) ax -= 1;
+      if (keysDown['d'] || keysDown['arrowright']) ax += 1;
+      const moving = !!(ax || ay);
+      if (moving) {
+        const len = Math.hypot(ax, ay) || 1;
+        ax /= len;
+        ay /= len;
+        player.facing = Math.atan2(ay, ax);
+      }
+      const sp = baseSpeed * speedMul;
+      const rad = 9;
+      const freed = depenetrate(player.x, player.y, rad);
+      player.x = freed.x;
+      player.y = freed.y;
+      if (moving) {
+        const dx = ax * sp * dt;
+        const dy = ay * sp * dt;
+        if (!blocked(player.x + dx, player.y + dy, rad)) {
+          player.x += dx;
+          player.y += dy;
+        } else {
+          if (!blocked(player.x + dx, player.y, rad)) player.x += dx;
+          else {
+            for (const f of [0.7, 0.45, 0.25, 0.12]) {
+              if (!blocked(player.x + dx * f, player.y, rad)) {
+                player.x += dx * f;
+                break;
+              }
+            }
+          }
+          if (!blocked(player.x, player.y + dy, rad)) player.y += dy;
+          else {
+            for (const f of [0.7, 0.45, 0.25, 0.12]) {
+              if (!blocked(player.x, player.y + dy * f, rad)) {
+                player.y += dy * f;
+                break;
+              }
+            }
+          }
+          if (blocked(player.x, player.y, rad)) {
+            const push = depenetrate(player.x, player.y, rad);
+            player.x = push.x;
+            player.y = push.y;
+          }
+        }
+        if (grandmaChoice === 'mount' && Math.random() < 0.35) {
+          rideDust.push({
+            x: player.x - Math.cos(player.facing) * 8 + (Math.random() - 0.5) * 10,
+            y: player.y + 10 + (Math.random() - 0.5) * 6,
+            life: 0.35 + Math.random() * 0.25,
+            size: 3 + Math.random() * 4
+          });
+        }
+      }
+      player.bob += dt * (moving ? (grandmaChoice === 'mount' ? 14 : 10) : 4);
+    }
+
+    function updateWorld(dt) {
+      hiddenKeyCells.forEach((cell, i) => {
+        if (!collected.hidden[i] && nearCell(cell, TILE * 0.55)) collectKey('hidden', i);
+      });
+      if (!collected.exit && nearCell(exitCell, TILE * 0.6)) collectKey('exit');
+
+      const pot = cellCenter(potCell.c, potCell.r);
+      const pdist = Math.hypot(player.x - pot.x, player.y - pot.y);
+      potNear = pdist < TILE * 2.15 && !collected.pot;
+      if (potNear) {
+        const ang = Math.atan2(player.y - pot.y, player.x - pot.x);
+        if (potSpin.prev === null) potSpin.prev = ang;
+        potSpin.acc += Math.abs(angDiff(ang, potSpin.prev));
+        potSpin.prev = ang;
+        if (potSpin.acc >= Math.PI * 2 * 3 - 0.15) collectKey('pot');
+        if (Math.random() < 0.6) {
+          const a = Math.random() * Math.PI * 2;
+          electric.push({
+            x1: pot.x,
+            y1: pot.y - 10,
+            x2: pot.x + Math.cos(a) * (18 + Math.random() * 26),
+            y2: pot.y - 10 + Math.sin(a) * (18 + Math.random() * 26),
+            life: 0.08 + Math.random() * 0.1
+          });
+        }
+        const laps = Math.min(3, potSpin.acc / (Math.PI * 2));
+        const remain = Math.max(0, 3 - Math.floor(laps + 0.02));
+        potHintText.textContent = remain === 3 ?
+          '找到真正的花盆，繞著它走三圈，就能取得鑰匙。' :
+          remain === 0 ?
+          '太好了！電光凝聚，花盆鑰匙已到手。' :
+          `快成功了！再繞 ${remain} 圈，就能取得鑰匙。`;
+        potHint.classList.remove('hidden');
+      } else {
+        potSpin.prev = null;
+        potHint.classList.add('hidden');
+      }
+
+      if (rockVisible && !collected.rock && nearCell(rockCell, TILE * 0.8)) {
+        collectKey('rock');
+        endingPhase = 'needExit';
+      }
+
+      if (endingPhase === 'carryToExit' && nearCell(exitCell, TILE * 1.2)) {
+        giveFinalKeyByGrandma();
+      }
+
+      if (endingPhase === 'needExit' && collected.rock && nearCell(exitCell, TILE * 1.15)) {
+        if (grandmaChoice === 'mount') {
+          endingPhase = 'bite';
+          state = 'ending';
+          shake = 16;
+          followingGrandma = true;
+          setTimeout(() => gameOver('阿嬤在出口處咬了你一口。'), 900);
+        } else {
+          endingPhase = 'won';
+          winGame();
+        }
+      }
+
+      maybeTriggerFourKeys();
+    }
+
+    function giveFinalKeyByGrandma() {
+      if (endingPhase === 'grandmaGives' || state === 'win') return;
+      endingPhase = 'grandmaGives';
+      state = 'ending';
+      collected.rock = true;
+      updateHud();
+      spawnBurst(player.x, player.y, '#d4a017', 40, 120);
+      showMessage('阿嬤忽然出現在月光裡，把最後一把鑰匙交到你手上。', 2800).then(() => winGame());
+    }
+
+    function updateParticles(dt) {
+      for (const p of particles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 40 * dt;
+        p.life -= dt;
+      }
+      particles = particles.filter(p => p.life > 0);
+      for (const e of electric) e.life -= dt;
+      electric = electric.filter(e => e.life > 0);
+      for (const s of rainbow) {
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+        s.vy += 50 * dt;
+        s.life -= dt;
+        s.rot += dt * 8;
+      }
+      rainbow = rainbow.filter(s => s.life > 0);
+      for (const d of rideDust) {
+        d.y += 18 * dt;
+        d.x += (Math.random() - 0.5) * 8 * dt;
+        d.life -= dt;
+      }
+      rideDust = rideDust.filter(d => d.life > 0);
+      if (shake > 0) shake = Math.max(0, shake - dt * 28);
+    }
+
+    function worldToScreen(x, y) {
+      const shx = (Math.random() - 0.5) * shake;
+      const shy = (Math.random() - 0.5) * shake;
+      return {
+        x: W / 2 + (x - cam.x) * cam.zoom + shx,
+        y: H / 2 + (y - cam.y) * cam.zoom + shy
+      };
+    }
+
+    function drawStar(x, y, r, rot, color) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+        const b = a + Math.PI / 5;
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        ctx.lineTo(Math.cos(b) * r * 0.42, Math.sin(b) * r * 0.42);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawKeyIcon(x, y, s, glow) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      if (glow) {
+        ctx.shadowColor = '#d4a017';
+        ctx.shadowBlur = 16;
+      }
+      ctx.fillStyle = '#e8c547';
+      ctx.strokeStyle = '#8a6a10';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, -5, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillRect(-1.6, -1, 3.2, 14);
+      ctx.fillRect(-1.6, 8, 7, 2.4);
+      ctx.fillRect(-1.6, 11.5, 5, 2.4);
+      ctx.restore();
+    }
+
+    function drawFoliage(kind, t) {
+      if (kind === 0) {
+        ctx.fillStyle = '#2f7a48';
+        ctx.beginPath(); ctx.ellipse(0, -16, 7, 11, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-8, -12, 6, 9, -0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(8, -12, 6, 9, 0.5, 0, Math.PI * 2); ctx.fill();
+      } else if (kind === 1) {
+        ctx.fillStyle = '#3d8f5a';
+        ctx.beginPath(); ctx.ellipse(0, -15, 9, 10, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f2a0c0';
+        for (const [x, y] of [[-6, -18], [5, -20], [0, -12], [-8, -10], [8, -11]]) {
+          ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (kind === 2) {
+        ctx.fillStyle = '#5aa86a';
+        ctx.beginPath(); ctx.ellipse(-4, -14, 5, 8, -0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(5, -15, 5, 9, 0.35, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#8fd18c';
+        ctx.beginPath(); ctx.ellipse(0, -10, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (kind === 3) {
+        ctx.fillStyle = '#6b8f3a';
+        ctx.beginPath(); ctx.moveTo(0, -26); ctx.lineTo(5, -8); ctx.lineTo(-5, -8); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#e8d56a';
+        ctx.beginPath(); ctx.arc(0, -26, 3.4, 0, Math.PI * 2); ctx.fill();
+      } else if (kind === 4) {
+        ctx.fillStyle = '#1f6b4a';
+        ctx.beginPath(); ctx.ellipse(0, -14, 10, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#d23a3a';
+        ctx.beginPath(); ctx.arc(-4, -16, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5, -14, 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -20, 2.2, 0, Math.PI * 2); ctx.fill();
+      } else if (kind === 5) {
+        ctx.fillStyle = '#7a6bb0';
+        for (const [x, y, r] of [[-5, -18, 3], [4, -20, 3.2], [0, -12, 2.6], [-8, -11, 2.2], [8, -12, 2.4]]) {
+          ctx.beginPath(); ctx.ellipse(x, y, r * 0.6, r, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#4a7a38';
+        ctx.fillRect(-1, -10, 2, 8);
+      } else if (kind === 6) {
+        ctx.fillStyle = '#d4a017';
+        ctx.beginPath(); ctx.arc(0, -18, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#c47b10';
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4 + t;
+          ctx.beginPath();
+          ctx.ellipse(Math.cos(a) * 8, -18 + Math.sin(a) * 5, 3.5, 2, a, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = '#2e6b3a';
+        ctx.beginPath(); ctx.moveTo(-10, -6); ctx.quadraticCurveTo(-14, -20, 0, -24); ctx.quadraticCurveTo(14, -18, 10, -6); ctx.fill();
+        ctx.fillStyle = '#f4e8c4';
+        ctx.beginPath(); ctx.arc(-3, -16, 1.8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -14, 1.6, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    function drawPot(sx, sy, z, skin) {
+      const skins = [
+        { body: '#c45c3e', rim: '#a04830', plant: 0 },
+        { body: '#dfe8f2', rim: '#7aa0c4', plant: 1 },
+        { body: '#6b4634', rim: '#4a2e22', plant: 2 },
+        { body: '#8a9a6a', rim: '#5d6b44', plant: 3 },
+        { body: '#1c1c1e', rim: '#3a3a40', plant: 4 },
+        { body: '#d8c4a0', rim: '#b89a70', plant: 5 },
+        { body: '#2f7c86', rim: '#1d545c', plant: 6 },
+        { body: '#8a7d78', rim: '#5c534f', plant: 7 },
+        { body: '#e07a5f', rim: '#b85a42', plant: 1 },
+        { body: '#4a3728', rim: '#2e2218', plant: 0 },
+        { body: '#c9a86c', rim: '#a8884c', plant: 3 },
+        { body: '#5c4033', rim: '#3e2a22', plant: 7 },
+        { body: '#7a3e2e', rim: '#5c2c20', plant: 4 },
+        { body: '#9c6644', rim: '#7a4e32', plant: 2 },
+        { body: '#b7c4b0', rim: '#6f8a72', plant: 5 },
+        { body: '#3d5a80', rim: '#243652', plant: 6 },
+        { body: '#c77d4a', rim: '#9a5a30', plant: 0 },
+        { body: '#6e4a3a', rim: '#4e3428', plant: 7 },
+        { body: '#ead7c1', rim: '#c4a882', plant: 1 },
+        { body: '#2c4a3a', rim: '#173024', plant: 2 },
+        { body: '#8e3a4f', rim: '#642536', plant: 4 }
+      ];
+      const id = ((skin % POT_SKIN_COUNT) + POT_SKIN_COUNT) % POT_SKIN_COUNT;
+      const s = skins[id];
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(z * (0.92 + (id % 5) * 0.03), z);
+      drawFoliage(s.plant, performance.now() / 900 + id);
+      ctx.fillStyle = s.body;
+      ctx.beginPath();
+      ctx.moveTo(-12, -6);
+      ctx.lineTo(-10, 12);
+      ctx.lineTo(10, 12);
+      ctx.lineTo(12, -6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = s.rim;
+      ctx.fillRect(-13, -8, 26, 5);
+      if (id % 3 === 0) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-3, -3);
+        ctx.lineTo(-1, 10);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawRock(sx, sy, z) {
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(z, z);
+      ctx.fillStyle = '#6d6a73';
+      ctx.beginPath();
+      ctx.moveTo(-16, 10);
+      ctx.quadraticCurveTo(-22, -4, -8, -16);
+      ctx.quadraticCurveTo(2, -24, 14, -10);
+      ctx.quadraticCurveTo(22, 2, 12, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#8b8790';
+      ctx.beginPath();
+      ctx.moveTo(-6, -8);
+      ctx.quadraticCurveTo(2, -18, 10, -6);
+      ctx.quadraticCurveTo(4, 0, -6, -8);
+      ctx.fill();
+      ctx.fillStyle = '#d4a017';
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawPlayerBody(opts) {
+      const lean = opts.lean || 0;
+      const squash = opts.squash || 1;
+      const armsUp = opts.armsUp || 0;
+      const recoilX = opts.recoilX || 0;
+      ctx.save();
+      ctx.translate(recoilX, 0);
+      ctx.rotate(lean);
+      ctx.scale(1, squash);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(0, 12, 8, 3.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f3ead8';
+      ctx.beginPath();
+      ctx.arc(0, -8, 6.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1b2a22';
+      ctx.beginPath();
+      ctx.arc(-0.5, -9.5, 6.4, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#d4a017';
+      ctx.beginPath();
+      ctx.roundRect(-7, -2, 14, 14, 4);
+      ctx.fill();
+      ctx.fillStyle = '#2a1c08';
+      ctx.fillRect(-6.5, 10, 5, 7);
+      ctx.fillRect(1.5, 10, 5, 7);
+      ctx.fillStyle = '#f3ead8';
+      ctx.save();
+      ctx.translate(-11, 2);
+      ctx.rotate(-0.15 - armsUp);
+      ctx.fillRect(0, -2, 4, 8);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(7, 2);
+      ctx.rotate(0.15 + armsUp);
+      ctx.fillRect(0, -2, 4, 8);
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function drawGrandmaBody(opts) {
+      const caneAngle = opts.caneAngle != null ? opts.caneAngle : 0.12;
+      const caneLen = opts.caneLen || 26;
+      const raise = opts.raise || 0;
+      const stoop = opts.stoop || 0;
+      ctx.save();
+      ctx.rotate(stoop);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(0, 12, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e8d7c0';
+      ctx.beginPath();
+      ctx.arc(0, -7 - raise, 5.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#cfc4d4';
+      ctx.beginPath();
+      ctx.arc(0, -9 - raise, 5.8, Math.PI, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#5b3d7a';
+      ctx.beginPath();
+      ctx.roundRect(-7, -1 - raise * 0.4, 14, 14, 5);
+      ctx.fill();
+      ctx.fillStyle = '#3a2454';
+      ctx.fillRect(-6, 10, 5, 6);
+      ctx.fillRect(1, 10, 5, 6);
+      ctx.strokeStyle = opts.caneColor || '#c9a24a';
+      ctx.lineWidth = opts.caneWidth || 2.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const hx = 9, hy = -10 - raise;
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx + Math.sin(caneAngle) * caneLen, hy + Math.cos(caneAngle) * caneLen);
+      ctx.stroke();
+      ctx.fillStyle = '#e8c547';
+      ctx.beginPath();
+      ctx.arc(hx, hy, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawPlayer(sx, sy, z) {
+      const bob = Math.sin(player.bob) * 2;
+      ctx.save();
+      ctx.translate(sx, sy + bob * z * 0.2);
+      ctx.scale(z, z);
+      drawPlayerBody({});
+      ctx.restore();
+    }
+
+    function drawGrandma(sx, sy, z, pose) {
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(z, z);
+      drawGrandmaBody(pose || {});
+      ctx.restore();
+    }
+
+    function drawCarryPair(sx, sy, z) {
+      const bob = Math.sin(player.bob) * 1.4;
+      const sway = Math.sin(player.bob * 0.5) * 0.08;
+      ctx.save();
+      ctx.translate(sx, sy + bob * z * 0.15);
+      ctx.scale(z, z);
+      ctx.rotate(sway);
+      ctx.save();
+      ctx.translate(-2, -16);
+      ctx.scale(0.92, 0.92);
+      drawGrandmaBody({ stoop: 0.35, caneAngle: 1.1, caneLen: 18, raise: -1 });
+      ctx.fillStyle = '#e8d7c0';
+      ctx.fillRect(-12, 2, 8, 3);
+      ctx.fillRect(4, 2, 8, 3);
+      ctx.restore();
+      drawPlayerBody({ lean: 0.18, armsUp: 0.7 });
+      ctx.restore();
+    }
+
+    function drawRidePair(sx, sy, z) {
+      const bob = Math.sin(player.bob * 1.4) * 3;
+      const limp = Math.sin(player.bob) * 0.12;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(z, z);
+      ctx.save();
+      ctx.translate(0, 4);
+      ctx.rotate(limp);
+      drawGrandmaBody({ stoop: 0.22, caneAngle: -0.05 + limp, caneLen: 28, raise: 0 });
+      ctx.restore();
+      ctx.save();
+      ctx.translate(Math.sin(player.bob) * 1.5, -18 + bob * 0.15);
+      ctx.rotate(-limp * 0.4);
+      drawPlayerBody({ lean: -0.05, armsUp: 0.35 });
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function drawHitScene(sx, sy, z) {
+      const t = hitT;
+      let caneAngle = 0.2;
+      let raise = 0;
+      let recoilX = 0;
+      let squash = 1;
+      let lean = 0;
+      let grandmaX = 30;
+      let flash = 0;
+      if (t < 0.7) {
+        const k = t / 0.7;
+        grandmaX = lerp(48, 26, k);
+        raise = k * 10;
+        caneAngle = lerp(0.3, -0.9, k);
+      } else if (t < 1.15) {
+        const k = (t - 0.7) / 0.45;
+        grandmaX = 24;
+        raise = lerp(10, -2, k);
+        caneAngle = lerp(-0.9, 1.35, k);
+        recoilX = k * 10;
+        squash = 1 - k * 0.12;
+        lean = k * 0.4;
+        flash = k > 0.35 && k < 0.7 ? 1 : 0;
+      } else if (t < 1.9) {
+        const k = (t - 1.15) / 0.75;
+        grandmaX = 26;
+        raise = lerp(-2, 14, k);
+        caneAngle = lerp(1.35, -1.05, k);
+        recoilX = lerp(10, 4, k);
+        lean = lerp(0.4, 0.15, k);
+      } else if (t < 2.45) {
+        const k = (t - 1.9) / 0.55;
+        raise = lerp(14, -4, k);
+        caneAngle = lerp(-1.05, 1.45, k);
+        recoilX = 6 + k * 14;
+        squash = 1 - k * 0.18;
+        lean = 0.2 + k * 0.5;
+        flash = k > 0.3 && k < 0.65 ? 1 : 0;
+      } else if (t < 3.3) {
+        const k = (t - 2.45) / 0.85;
+        grandmaX = lerp(24, 20, k);
+        raise = lerp(-4, 16, k);
+        caneAngle = lerp(1.45, -1.2, k);
+        recoilX = 16;
+        squash = 0.88;
+        lean = 0.7;
+      } else {
+        const k = Math.min(1, (t - 3.3) / 0.7);
+        raise = lerp(16, -6, k);
+        caneAngle = lerp(-1.2, 1.55, k);
+        recoilX = 18 + k * 8;
+        squash = 0.82;
+        lean = 0.85;
+        flash = k > 0.25 && k < 0.6 ? 1 : 0;
+      }
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(z, z);
+      ctx.save();
+      ctx.translate(grandmaX, 0);
+      drawGrandmaBody({ caneAngle, raise, caneColor: flash ? '#e23d3d' : '#c9a24a', caneWidth: flash ? 3.4 : 2.4, stoop: -0.1 });
+      ctx.restore();
+      drawPlayerBody({ recoilX, squash, lean, armsUp: -0.4 });
+      if (flash) {
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#fff4c8';
+        ctx.beginPath();
+        ctx.arc(8 + recoilX * 0.2, -6, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#e23d3d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-4, -16);
+        ctx.lineTo(2, -4);
+        ctx.lineTo(-8, -2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawWorld() {
+      ctx.fillStyle = '#070b0a';
+      ctx.fillRect(0, 0, W, H);
+
+      const viewL = cam.x - (W / 2) / cam.zoom - TILE;
+      const viewR = cam.x + (W / 2) / cam.zoom + TILE;
+      const viewT = cam.y - (H / 2) / cam.zoom - TILE;
+      const viewB = cam.y + (H / 2) / cam.zoom + TILE;
+      const c0 = Math.max(0, Math.floor(viewL / TILE));
+      const c1 = Math.min(GW - 1, Math.floor(viewR / TILE));
+      const r0 = Math.max(0, Math.floor(viewT / TILE));
+      const r1 = Math.min(GH - 1, Math.floor(viewB / TILE));
+
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          const x = c * TILE,
+            y = r * TILE;
+          const p = worldToScreen(x, y);
+          const t = TILE * cam.zoom;
+          if (grid[r][c] === 1) {
+            const shade = 18 + ((c * 13 + r * 7) % 10);
+            ctx.fillStyle = `rgb(${shade},${shade + 18},${shade + 10})`;
+            ctx.fillRect(p.x, p.y, t + 0.6, t + 0.6);
+            ctx.fillStyle = 'rgba(47,90,60,0.55)';
+            ctx.fillRect(p.x, p.y, t + 0.6, t * 0.28);
+            if ((c + r) % 3 === 0) {
+              ctx.fillStyle = 'rgba(212,160,23,0.07)';
+              ctx.fillRect(p.x + t * 0.3, p.y + t * 0.15, t * 0.18, t * 0.18);
+            }
+          } else {
+            const dirt = 22 + ((c * 5 + r * 3) % 8);
+            ctx.fillStyle = `rgb(${dirt + 8},${dirt + 6},${dirt})`;
+            ctx.fillRect(p.x, p.y, t + 0.6, t + 0.6);
+            ctx.strokeStyle = 'rgba(212,160,23,0.04)';
+            ctx.strokeRect(p.x + 0.5, p.y + 0.5, t, t);
+          }
+        }
+      }
+
+      const startP = worldToScreen(startCell.c * TILE, startCell.r * TILE);
+      const st = TILE * cam.zoom;
+      ctx.fillStyle = 'rgba(212,160,23,0.18)';
+      ctx.beginPath();
+      ctx.arc(startP.x + st / 2, startP.y + st / 2, st * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212,160,23,0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(startP.x + st / 2, startP.y + st / 2, st * 0.32, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const exitP = worldToScreen(exitCell.c * TILE, exitCell.r * TILE);
+      const et = TILE * cam.zoom;
+      const g = ctx.createLinearGradient(exitP.x, exitP.y - et, exitP.x, exitP.y + et * 2);
+      g.addColorStop(0, 'rgba(243,234,216,0.35)');
+      g.addColorStop(1, 'rgba(243,234,216,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(exitP.x - et * 0.2, exitP.y - et * 1.4, et * 1.4, et * 3);
+      ctx.strokeStyle = '#d4a017';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(exitP.x + et * 0.12, exitP.y + et * 0.08, et * 0.76, et * 0.84);
+
+      const pot = cellCenter(potCell.c, potCell.r);
+      const ps = worldToScreen(pot.x, pot.y);
+      if (potNear) {
+        const pulse = 0.4 + Math.sin(performance.now() / 110) * 0.2;
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = '#5ef0d0';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(ps.x, ps.y, TILE * cam.zoom * 1.2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(ps.x, ps.y, TILE * cam.zoom * 1.55, 0, Math.PI * 2);
+        ctx.stroke();
+        const spinT = Math.min(1, potSpin.acc / (Math.PI * 2 * 3));
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = '#e8c547';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(ps.x, ps.y, TILE * cam.zoom * 1.38, -Math.PI / 2, -Math.PI / 2 + spinT * Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      drawPot(ps.x, ps.y, cam.zoom, realPotSkin);
+
+      if (decoyPots) {
+        for (const d of decoyPots) {
+          const dp = cellCenter(d.c, d.r);
+          const ds = worldToScreen(dp.x, dp.y);
+          drawPot(ds.x, ds.y, cam.zoom, d.skin);
+        }
+      }
+
+      if (rockVisible) {
+        const rock = cellCenter(rockCell.c, rockCell.r);
+        const rs = worldToScreen(rock.x, rock.y);
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = '#d4a017';
+        ctx.beginPath();
+        ctx.arc(rs.x, rs.y, TILE * cam.zoom * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        drawRock(rs.x, rs.y, cam.zoom);
+      }
+
+      hiddenKeyCells.forEach((cell, i) => {
+        if (collected.hidden[i]) return;
+        const p = cellCenter(cell.c, cell.r);
+        const s = worldToScreen(p.x, p.y + Math.sin(performance.now() / 280 + i) * 4);
+        drawKeyIcon(s.x, s.y, cam.zoom, true);
+      });
+      if (!collected.exit) {
+        const p = cellCenter(exitCell.c, exitCell.r);
+        const s = worldToScreen(p.x, p.y + Math.sin(performance.now() / 280) * 4);
+        drawKeyIcon(s.x, s.y, cam.zoom, true);
+      }
+
+      for (const e of electric) {
+        const a = worldToScreen(e.x1, e.y1);
+        const b = worldToScreen(e.x2, e.y2);
+        ctx.strokeStyle = `rgba(94,240,208,${Math.max(0, e.life * 8)})`;
+        ctx.lineWidth = 1.6 * cam.zoom;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        const mx = (a.x + b.x) / 2 + (Math.random() - 0.5) * 12;
+        const my = (a.y + b.y) / 2 + (Math.random() - 0.5) * 12;
+        ctx.lineTo(mx, my);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+
+      for (const p of particles) {
+        const s = worldToScreen(p.x, p.y);
+        ctx.globalAlpha = Math.max(0, p.life / 0.8);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, p.size * cam.zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      for (const s of rainbow) {
+        const p = worldToScreen(s.x, s.y);
+        ctx.globalAlpha = Math.max(0, s.life);
+        drawStar(p.x, p.y, s.size * cam.zoom, s.rot, `hsl(${s.hue},90%,62%)`);
+        ctx.globalAlpha = 1;
+      }
+
+      for (const d of rideDust) {
+        const s = worldToScreen(d.x, d.y);
+        ctx.globalAlpha = Math.max(0, d.life * 1.6);
+        ctx.fillStyle = 'rgba(180,160,120,0.7)';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, d.size * cam.zoom, d.size * 0.55 * cam.zoom, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      const pl = worldToScreen(player.x, player.y);
+      if (state === 'grandmaWalk' && grandmaWalkFrom) {
+        const t = Math.min(1, grandmaWalkT / 1.35);
+        const gx = lerp(grandmaWalkFrom.x, grandmaWalkTo.x, t);
+        const gy = lerp(grandmaWalkFrom.y, grandmaWalkTo.y, t);
+        const gs = worldToScreen(gx, gy);
+        drawGrandma(gs.x, gs.y, cam.zoom, { caneAngle: 0.08 + Math.sin(t * 8) * 0.12, stoop: 0.08 });
+        drawPlayer(pl.x, pl.y, cam.zoom);
+      } else if (state === 'hit') {
+        drawHitScene(pl.x, pl.y, cam.zoom);
+      } else if (followingGrandma && grandmaChoice === 'carry') {
+        drawCarryPair(pl.x, pl.y, cam.zoom);
+      } else if (followingGrandma && grandmaChoice === 'mount') {
+        drawRidePair(pl.x, pl.y, cam.zoom);
+      } else {
+        drawPlayer(pl.x, pl.y, cam.zoom);
+      }
+
+      const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.78);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(7,11,10,0.55)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = 'rgba(243,234,216,0.08)';
+      ctx.beginPath();
+      ctx.arc(W - 90, 90, 50, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (state === 'hit') {
+        let flashA = 0;
+        for (const h of [1.0, 2.2, 3.55]) {
+          const d = Math.abs(hitT - h);
+          if (d < 0.2) flashA = Math.max(flashA, 1 - d / 0.2);
+        }
+        if (flashA > 0) {
+          ctx.fillStyle = `rgba(176, 18, 28, ${0.32 * flashA})`;
+          ctx.fillRect(0, 0, W, H);
+        }
+        const dim = Math.min(0.28, hitT * 0.08);
+        ctx.fillStyle = `rgba(20, 0, 0, ${dim})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    function loop(ts) {
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min(0.05, (ts - lastTs) / 1000);
+      lastTs = ts;
+
+      if (state === 'playing') {
+        timeLeft -= dt * 1000;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          gameOver('月光散盡，綠籬合攏。');
+        } else if (!grandmaDone && (DURATION - timeLeft) >= grandmaAt) {
+          openGrandma();
+        }
+        movePlayer(dt);
+        updateWorld(dt);
+        cam.tx = player.x;
+        cam.ty = player.y;
+        cam.tz = 1.15;
+        cam.x = lerp(cam.x, cam.tx, 1 - Math.pow(0.001, dt));
+        cam.y = lerp(cam.y, cam.ty, 1 - Math.pow(0.001, dt));
+        cam.zoom = lerp(cam.zoom, cam.tz, 1 - Math.pow(0.01, dt));
+        updateHud();
+      } else if (state === 'cinematic') {
+        tickCinematic(dt);
+      } else if (state === 'grandmaWalk') {
+        grandmaWalkT += dt;
+        cam.x = lerp(cam.x, player.x, 0.12);
+        cam.y = lerp(cam.y, player.y, 0.12);
+        if (grandmaWalkT >= 1.35) {
+          state = 'grandma';
+          grandmaOverlay.classList.remove('hidden');
+          grandmaOverlay.classList.add('flex');
+        }
+      } else if (state === 'hit') {
+        hitT += dt;
+        const swingHits = [1.0, 2.2, 3.55];
+        for (const h of swingHits) {
+          if (hitT - dt < h && hitT >= h) {
+            shake = 22;
+            spawnBurst(player.x + 10, player.y - 6, '#e23d3d', 18, 140);
+            spawnBurst(player.x + 6, player.y - 4, '#f4e8c4', 10, 90);
+          }
+        }
+        if (hitT < 1.2) shake = Math.max(shake, 4 + hitT * 6);
+        else if (hitT > 3.3) shake = Math.max(shake, 10);
+        cam.x = lerp(cam.x, player.x + 8, 0.16);
+        cam.y = lerp(cam.y, player.y, 0.16);
+        cam.zoom = lerp(cam.zoom, 1.45, 0.08);
+        if (hitT >= HIT_DURATION) gameOver('阿嬤的拐杖連連敲在你肩上。');
+      } else if (state === 'ending') {
+        cam.x = lerp(cam.x, player.x, 0.12);
+        cam.y = lerp(cam.y, player.y, 0.12);
+      }
+
+      if (state === 'playing' && potTrackerRemaining > 0 && !collected.pot) {
+        potTrackerRemaining = Math.max(0, potTrackerRemaining - dt);
+      }
+      const trackingPot = state === 'playing' && potTrackerRemaining > 0 && !collected.pot;
+      potTracker.style.display = trackingPot ? 'block' : 'none';
+      if (trackingPot) {
+        const pot = cellCenter(potCell.c, potCell.r);
+        const angle = Math.atan2(pot.y - player.y, pot.x - player.x);
+        potTrackerArrow.style.transform = `rotate(${angle}rad)`;
+      }
+
+      updateParticles(dt);
+      drawWorld();
+      requestAnimationFrame(loop);
+    }
+
+    resetRun();
+    requestAnimationFrame(loop);
+
+  </script>
+</body>
+
+</html>
