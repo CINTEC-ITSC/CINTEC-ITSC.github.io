@@ -285,7 +285,7 @@
         const player = {
             x: canvas.width / 2,
             y: canvas.height / 2,
-            size: 28,
+            size: 40,
             color: '#f97316'
         };
 
@@ -305,7 +305,7 @@
                 } while (Math.hypot(x - player.x, y - player.y) < 110);
 
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 2.2 + Math.random() * 1.8;
+                const speed = (2.2 + Math.random() * 1.8) * 0.8;
                 const type = i % 2 === 0 ? 'vampire' : 'ghost';
                 const typeSpeed = speed * 0.85;
 
