@@ -68,10 +68,31 @@
             color: #fde68a;
             line-height: 1.5;
         }
-        #quiz-overlay, #game-modal, #pause-overlay {
+        #quiz-overlay, #game-modal, #pause-overlay, #gameover-overlay {
             position: absolute;
             inset: 0;
             z-index: 50;
+        }
+        #gameover-overlay {
+            z-index: 90;
+            background: rgba(12, 0, 0, 0.94);
+            animation: raidFlash 0.28s linear infinite alternate;
+        }
+        #gameover-title {
+            font-size: clamp(56px, 16vw, 140px);
+            color: #fecaca;
+            line-height: 0.92;
+            letter-spacing: 0.06em;
+            animation: goPulse 0.4s ease-in-out infinite alternate;
+            margin: 8px 12px 20px;
+        }
+        @keyframes raidFlash {
+            from { background: rgba(18, 0, 0, 0.94); }
+            to { background: rgba(90, 0, 0, 0.9); }
+        }
+        @keyframes goPulse {
+            from { transform: scale(1); text-shadow: 0 0 18px #ef4444, 0 0 48px #7f1d1d; }
+            to { transform: scale(1.07); text-shadow: 0 0 40px #f87171, 0 0 90px #ef4444; }
         }
         #quiz-answer {
             font-family: Orbitron, sans-serif;
@@ -108,20 +129,20 @@
     <div id="main-menu" class="flex flex-col items-center z-10 max-w-2xl w-full p-8 rounded-lg border-4 border-cyan-500 bg-slate-950 text-center">
         <p class="text-cyan-300 text-[10px] tracking-[0.4em] mb-3">OPERATION TRUE WISE</p>
         <h1 class="text-[38px] md:text-[52px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-amber-300 mb-6 animate-pulse">坦克對射</h1>
-        <p class="text-amber-300 text-sm md:text-base mb-5 leading-relaxed">三章戰役 · 兩分鐘內完成 · 只有真正的智慧才能通關</p>
+        <p class="text-amber-300 text-sm md:text-base mb-5 leading-relaxed">三章戰役 · 兩分鐘內完成 · 只有真正的智慧才能通關<br><span class="text-pink-300 text-[11px] md:text-xs">任何數學題答錯即 GAME OVER</span></p>
 
         <div class="w-full mb-6">
             <div class="chapter-card">
                 <b>第一章 無線電靜默</b><br>
-                尋找並收集 10 枚金幣。開場 3 秒無敵。必須躲藏或閃避無線電雷達；被掃描 3 次後，火箭會把整張地圖炸毀。每章玩家坦克有 10 點生命；第一章與第二章共有 1 次復活機會（30 秒簡單代數）。
+                尋找並收集 10 枚金幣。開場 3 秒無敵。必須躲藏或閃避無線電雷達；被掃描 3 次後，火箭會把整張地圖炸毀。每章玩家坦克只有 3 點生命，移動速度減半。進入每章前須通過 30 秒中三至中四代數題（每次重新出題）。第一章與第二章共有 1 次復活機會；任何數學題答錯即 GAME OVER。
             </div>
             <div class="chapter-card">
                 <b>第二章 鋼鐵攻勢</b><br>
-                消滅全部 5 輛敵坦克。敵軍分散部署，各 3 命；玩家坦克有 10 點生命。第一章與第二章共有 1 次復活機會。
+                消滅全部 5 輛敵坦克。敵軍分散部署，各 3 命；玩家坦克只有 3 點生命。進入本章前須通過 30 秒中三至中四代數題。第一章與第二章共有 1 次復活機會；答錯即 GAME OVER。
             </div>
             <div class="chapter-card">
                 <b>第三章 總統之心</b><br>
-                收集 3 顆鑽石並擊殺總統。玩家坦克每章有 10 點生命。總統只有 1 命，但能以超能心智操控 10 輛坦克（傷害 1／3 命），並每 5 秒發射 1 枚微型火箭（傷害 2／1 命）。瀕死時會出現隨機 60 秒中學代數題：玩家瀕死且答對 → 復活並擊殺總統；答錯 → 玩家陣亡。總統瀕死且答錯 → 召喚 1 輛 3 命護衛；答對 → 總統倒下，玩家勝利。
+                收集 3 顆鑽石並擊殺總統。玩家坦克每章只有 3 點生命。總統只有 1 命，操控 10 輛坦克，並每秒發射 1 發追蹤子彈（傷害 1），另每 5 秒發射微型火箭（傷害 2）。進入本章前須通過 30 秒中三至中四代數題。瀕死題：玩家瀕死且答對 → 復活並擊殺總統；答錯 → GAME OVER。總統瀕死且答對 → 總統倒下；答錯 → 玩家陣亡。
             </div>
         </div>
 
@@ -135,7 +156,7 @@
         <div class="hud-panel" id="hud-panel">
             <div>
                 <div class="text-cyan-300 font-bold" id="hud-pilot">COMMANDER</div>
-                <div class="text-white mt-1">HP <span id="hp-text">10/10</span></div>
+                <div class="text-white mt-1">HP <span id="hp-text">3/3</span></div>
                 <div class="hp-wrap"><div id="hp-bar"></div></div>
                 <div class="text-amber-300 mt-2">SCORE <span id="p1-score">0000</span></div>
             </div>
@@ -172,13 +193,20 @@
 
             <div id="quiz-overlay" class="hidden bg-black/92 flex flex-col items-center justify-center text-center p-6 z-[60]">
                 <p class="text-amber-300 text-[10px] tracking-[0.3em] mb-2">TRUE WISE PROTOCOL</p>
-                <h2 id="quiz-heading" class="text-[20px] md:text-[26px] font-bold mb-2 text-cyan-300">60s ALGEBRA</h2>
+                <h2 id="quiz-heading" class="text-[20px] md:text-[26px] font-bold mb-2 text-cyan-300">30s ALGEBRA</h2>
                 <p id="quiz-context" class="text-[11px] text-slate-300 mb-4 leading-relaxed max-w-md"></p>
                 <p id="quiz-question" class="text-[16px] md:text-[20px] text-amber-200 mb-4 font-[Orbitron]" style="font-family:Orbitron,sans-serif"></p>
                 <input id="quiz-answer" maxlength="8" autocomplete="off" placeholder="x = ?">
-                <div id="quiz-timer" class="text-[22px] text-pink-400 my-4">60</div>
+                <div id="quiz-timer" class="text-[22px] text-pink-400 my-4">30</div>
                 <button id="quiz-submit" class="py-3 px-6 bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-[14px] rounded border-b-4 border-cyan-900">SUBMIT</button>
-                <p class="text-[10px] text-slate-400 mt-3">輸入整數 x，按 Enter 送出</p>
+                <p class="text-[10px] text-slate-400 mt-3">輸入整數 x，按 Enter 送出。答錯即 GAME OVER。</p>
+            </div>
+
+            <div id="gameover-overlay" class="hidden flex flex-col items-center justify-center text-center p-4">
+                <p class="text-red-400 text-[12px] md:text-[16px] tracking-[0.5em] mb-3 animate-pulse">⚠ AIR RAID ⚠</p>
+                <h1 id="gameover-title">GAME OVER</h1>
+                <p id="gameover-message" class="text-[12px] md:text-[16px] text-red-100 mb-8 max-w-lg leading-relaxed"></p>
+                <button id="gameover-btn" class="hidden py-4 px-10 bg-red-600 hover:bg-red-500 text-white text-[18px] rounded border-b-4 border-red-900 transition active:translate-y-1">RETRY</button>
             </div>
         </div>
     </div>
@@ -204,6 +232,27 @@
             playDiamond() { this.tone('square', 740, 1180, 0.28, 0.1); }
             playPowerup() { this.tone('sawtooth', 160, 920, 0.28, 0.12); }
             playAlarm() { this.tone('square', 420, 180, 0.35, 0.12); this.tone('square', 180, 420, 0.35, 0.1); }
+            playAirRaid(seconds = 3) {
+                this.init();
+                const ctx = this.ctx, now = ctx.currentTime;
+                const makeSiren = (base, vol, type) => {
+                    const osc = ctx.createOscillator(), gain = ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(base, now);
+                    osc.frequency.linearRampToValueAtTime(base * 1.85, now + 0.75);
+                    osc.frequency.linearRampToValueAtTime(base * 0.85, now + 1.5);
+                    osc.frequency.linearRampToValueAtTime(base * 1.9, now + 2.25);
+                    osc.frequency.linearRampToValueAtTime(base * 0.9, now + seconds);
+                    gain.gain.setValueAtTime(0.0001, now);
+                    gain.gain.exponentialRampToValueAtTime(vol, now + 0.05);
+                    gain.gain.setValueAtTime(vol, now + seconds - 0.22);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(now); osc.stop(now + seconds);
+                };
+                makeSiren(430, 0.22, 'sawtooth');
+                makeSiren(215, 0.14, 'square');
+            }
             playRadar() { this.tone('sine', 1400, 900, 0.08, 0.04); }
             playWhoosh() { this.tone('sawtooth', 300, 60, 0.4, 0.08); }
             playExplosion() {
@@ -261,48 +310,58 @@
         let lastRocketSalvo = 0, lastRadarBeep = 0, president = null, pendingLethal = null;
         let quizDeadline = 0, quizTimerId = null, quizKind = null, quizData = null, loopOn = false;
         let summonedGuards = 0, campaignReviveUsed = false, radarGraceUntil = 0;
+        let campaignPausedAt = 0, gameOverTimer = null;
 
-        function generateAlgebraQuiz(easy) {
-            for (let n = 0; n < 50; n++) {
-                const x = easy ? (2 + Math.floor(Math.random() * 9)) : (2 + Math.floor(Math.random() * 13));
-                const kind = Math.floor(Math.random() * (easy ? 5 : 6));
+        function generateAlgebraQuiz() {
+            for (let n = 0; n < 80; n++) {
+                const x = 2 + Math.floor(Math.random() * 12);
+                const kind = Math.floor(Math.random() * 7);
                 let item = null;
                 if (kind === 0) {
-                    const a = 2 + Math.floor(Math.random() * (easy ? 4 : 6));
+                    const a = 3 + Math.floor(Math.random() * 6);
+                    const c = 1 + Math.floor(Math.random() * (a - 1));
                     const b = 1 + Math.floor(Math.random() * 9);
-                    item = { q: `${a}x + ${b} = ${a * x + b}`, a: x };
+                    const d = (a - c) * x + b;
+                    if (d <= 0) continue;
+                    item = { q: `${a}x + ${b} = ${c}x + ${d}`, a: x };
                 } else if (kind === 1) {
                     const a = 2 + Math.floor(Math.random() * 5);
                     const b = 1 + Math.floor(Math.random() * 8);
-                    const rhs = a * x - b;
-                    if (rhs <= 0) continue;
-                    item = { q: `${a}x − ${b} = ${rhs}`, a: x };
-                } else if (kind === 2) {
-                    const b = 1 + Math.floor(Math.random() * 9);
-                    item = { q: `x + ${b} = ${x + b}`, a: x };
-                } else if (kind === 3) {
-                    const a = 2 + Math.floor(Math.random() * 4);
-                    const b = 1 + Math.floor(Math.random() * 5);
                     item = { q: `${a}(x + ${b}) = ${a * (x + b)}`, a: x };
+                } else if (kind === 2) {
+                    const a = 2 + Math.floor(Math.random() * 5);
+                    const b = 1 + Math.floor(Math.random() * 10);
+                    if ((x + b) % a !== 0) continue;
+                    item = { q: `(x + ${b}) / ${a} = ${(x + b) / a}`, a: x };
+                } else if (kind === 3) {
+                    const r1 = 2 + Math.floor(Math.random() * 6);
+                    const r2 = r1 + 1 + Math.floor(Math.random() * 5);
+                    item = { q: `x² − ${r1 + r2}x + ${r1 * r2} = 0（較大的根）`, a: r2 };
                 } else if (kind === 4) {
-                    const divisors = [];
-                    for (let d = 2; d <= (easy ? 5 : 6); d++) if (x % d === 0) divisors.push(d);
-                    if (!divisors.length) continue;
-                    const a = divisors[Math.floor(Math.random() * divisors.length)];
-                    if (easy) item = { q: `x / ${a} = ${x / a}`, a: x };
-                    else {
-                        const b = 1 + Math.floor(Math.random() * 6);
-                        item = { q: `x / ${a} + ${b} = ${x / a + b}`, a: x };
-                    }
-                } else {
                     const a = 3 + Math.floor(Math.random() * 5);
-                    const c = 1 + Math.floor(Math.random() * (a - 1));
-                    const b = 1 + Math.floor(Math.random() * 8);
-                    item = { q: `${a}x + ${b} = ${c}x + ${(a - c) * x + b}`, a: x };
+                    const b = 1 + Math.floor(Math.random() * 6);
+                    const d = 1 + Math.floor(Math.random() * (a - 1));
+                    const c = (d - a) * x + a * b;
+                    if (c <= 0) continue;
+                    item = { q: `${a}(x − ${b}) + ${c} = ${d}x`, a: x };
+                } else if (kind === 5) {
+                    const a = 2 + Math.floor(Math.random() * 4);
+                    const b = a + 1 + Math.floor(Math.random() * 3);
+                    if ((x * (a + b)) % (a * b) !== 0) continue;
+                    const c = x * (a + b) / (a * b);
+                    if (!Number.isInteger(c) || c <= 0) continue;
+                    item = { q: `x/${a} + x/${b} = ${c}`, a: x };
+                } else {
+                    const k = 2 + Math.floor(Math.random() * 3);
+                    const m = 2 + Math.floor(Math.random() * 4);
+                    const b = 1 + Math.floor(Math.random() * 7);
+                    const rhs = k * (m * x - b);
+                    if (rhs <= 0) continue;
+                    item = { q: `${k}(${m}x − ${b}) = ${rhs}`, a: x };
                 }
                 if (item && Number.isInteger(item.a) && item.a > 0) return item;
             }
-            return { q: '2x + 4 = 12', a: 4 };
+            return { q: '3(x − 2) + 4 = 2x + 9', a: 11 };
         }
 
         function playerInvincible() {
@@ -316,7 +375,7 @@
             }
             if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) e.preventDefault();
             if (e.code === 'Space') {
-                if (gameActive && !mapBlowing && !e.repeat) {
+                if (gameActive && !mapBlowing && !quizActive && !e.repeat) {
                     paused = !paused;
                     document.getElementById('pause-overlay').classList.toggle('hidden', !paused);
                 }
@@ -453,12 +512,12 @@
             constructor(id, x, y, role) {
                 this.id = id; this.x = x; this.y = y; this.role = role;
                 this.angle = 0; this.turretAngle = 0;
-                this.speed = (role === 'player' ? 2.35 * 0.85 : role === 'president' ? 1.15 : 1.7) * 6;
+                this.speed = (role === 'player' ? 2.35 * 0.85 * 0.5 : role === 'president' ? 1.15 : 1.7) * 6;
                 this.radius = (role === 'president' ? 26 : 20) * MAP_SCALE;
-                this.maxHp = role === 'player' ? 10 : role === 'president' ? 1 : 3;
+                this.maxHp = role === 'player' ? 3 : role === 'president' ? 1 : 3;
                 this.hp = this.maxHp;
                 this.lastShotTime = 0;
-                this.cooldown = role === 'player' ? 320 : role === 'president' ? 2200 : 900;
+                this.cooldown = role === 'player' ? 320 : role === 'president' ? 1000 : 900;
                 this.damage = 1;
                 this.isPresident = role === 'president';
                 this.strafe = Math.random() < 0.5 ? 1 : -1;
@@ -488,7 +547,7 @@
                             moveX = -Math.sign(p1.y - this.y) * this.strafe;
                             moveY = Math.sign(p1.x - this.x) * this.strafe;
                         }
-                        if (Date.now() - this.lastShotTime > this.cooldown && Math.random() < 0.2) this.shoot();
+                        if (Date.now() - this.lastShotTime > this.cooldown) this.shoot();
                     } else {
                         if (dist > 190) { moveX = Math.sign(p1.x - this.x); moveY = Math.sign(p1.y - this.y); }
                         else if (dist < 110) { moveX = -Math.sign(p1.x - this.x); moveY = -Math.sign(p1.y - this.y); }
@@ -525,7 +584,7 @@
                 sfx.playShoot();
                 const bx = this.x + Math.cos(this.turretAngle) * (this.radius + 8);
                 const by = this.y + Math.sin(this.turretAngle) * (this.radius + 8);
-                bullets.push(new Bullet(this.id, bx, by, this.turretAngle, this.damage));
+                bullets.push(new Bullet(this.id, bx, by, this.turretAngle, this.damage, this.isPresident));
             }
 
             draw() {
@@ -599,13 +658,24 @@
         }
 
         class Bullet {
-            constructor(ownerId, x, y, angle, damage) {
+            constructor(ownerId, x, y, angle, damage, homing = false) {
                 this.ownerId = ownerId; this.x = x; this.y = y; this.damage = damage || 1;
-                const speed = (ownerId === 1 ? 5.2 : 4.1) * MAP_SCALE;
+                this.homing = !!homing;
+                const speed = (ownerId === 1 ? 5.2 : this.homing ? 3.35 : 4.1) * MAP_SCALE;
                 this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
-                this.radius = 4 * MAP_SCALE; this.bounces = 0;
+                this.radius = (this.homing ? 5 : 4) * MAP_SCALE; this.bounces = 0;
             }
             update() {
+                if (this.homing && p1 && p1.hp > 0) {
+                    const desired = Math.atan2(p1.y - this.y, p1.x - this.x);
+                    const ang = Math.atan2(this.vy, this.vx);
+                    let diff = desired - ang;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    const next = ang + Math.max(-0.055, Math.min(0.055, diff));
+                    const spd = Math.hypot(this.vx, this.vy) || 1;
+                    this.vx = Math.cos(next) * spd; this.vy = Math.sin(next) * spd;
+                }
                 const oldX = this.x, oldY = this.y;
                 const nextX = this.x + this.vx, nextY = this.y + this.vy;
                 for (const rock of obstacles) {
@@ -613,10 +683,20 @@
                     const lengthSq = dx * dx + dy * dy || 1;
                     const t = Math.max(0, Math.min(1, ((rock.x - oldX) * dx + (rock.y - oldY) * dy) / lengthSq));
                     const closestX = oldX + t * dx, closestY = oldY + t * dy;
-                    if (Math.hypot(closestX - rock.x, closestY - rock.y) < rock.r * 1.12 + this.radius) return false;
+                    if (Math.hypot(closestX - rock.x, closestY - rock.y) < rock.r * 1.12 + this.radius) {
+                        if (this.homing) explodeAt(this.x, this.y, 10, '#fbbf24');
+                        return false;
+                    }
                 }
                 this.x = nextX; this.y = nextY;
                 const min = BORDER_SIZE + this.radius, max = MAP_SIZE - BORDER_SIZE - this.radius;
+                if (this.homing) {
+                    if (this.x < min || this.x > max || this.y < min || this.y > max) {
+                        explodeAt(this.x, this.y, 10, '#fbbf24');
+                        return false;
+                    }
+                    return true;
+                }
                 let bounced = false;
                 if (this.x < min) { this.x = min; this.vx = Math.abs(this.vx); bounced = true; }
                 if (this.x > max) { this.x = max; this.vx = -Math.abs(this.vx); bounced = true; }
@@ -638,7 +718,7 @@
                 return this.bounces <= 1;
             }
             draw() {
-                ctx.fillStyle = this.ownerId === 1 ? '#7dd3fc' : '#fb7185';
+                ctx.fillStyle = this.ownerId === 1 ? '#7dd3fc' : this.homing ? '#fbbf24' : '#fb7185';
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI * 2); ctx.fill();
@@ -701,6 +781,7 @@
             document.getElementById('pause-overlay').classList.add('hidden');
             document.getElementById('quiz-overlay').classList.add('hidden');
             document.getElementById('game-modal').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
             applyTheme();
             setupMap();
             initTrackCanvas();
@@ -753,6 +834,7 @@
             levelStartTime = Date.now();
             updateUI();
             gameActive = true;
+            startQuiz('chapter');
             ensureLoop();
         }
 
@@ -760,15 +842,26 @@
             if (!loopOn) { loopOn = true; gameLoop(); }
         }
 
+        function freezeCampaignClock() {
+            if (campaignDeadline && !campaignPausedAt) campaignPausedAt = Date.now();
+        }
+        function unfreezeCampaignClock() {
+            if (campaignDeadline && campaignPausedAt) {
+                campaignDeadline += Date.now() - campaignPausedAt;
+                campaignPausedAt = 0;
+            }
+        }
+
         function updateCampaignTimer() {
             if (!campaignDeadline) return;
-            const remaining = Math.max(0, campaignDeadline - Date.now());
+            const now = campaignPausedAt || Date.now();
+            const remaining = Math.max(0, campaignDeadline - now);
             const seconds = Math.ceil(remaining / 1000);
             const minutes = Math.floor(seconds / 60);
             const displaySeconds = String(seconds % 60).padStart(2, '0');
             document.getElementById('campaign-timer').innerText = `TIME ${minutes}:${displaySeconds}`;
-            if (remaining <= 0 && gameActive && !mapBlowing) {
-                showModal('TIME UP', '兩分鐘戰役時間已到。', 'RETRY', returnToMenu);
+            if (remaining <= 0 && gameActive && !mapBlowing && !quizActive) {
+                triggerGameOver('兩分鐘戰役時間已到。');
             }
         }
 
@@ -792,7 +885,7 @@
                 document.getElementById('hud-objective').innerText = `DESTROY ALL TANKS`;
                 document.getElementById('hud-side-label').innerText = 'ENEMIES';
                 document.getElementById('hud-status').innerText = `${left}/5`;
-                document.getElementById('hud-extra').innerText = `3 HP · ${reviveTag}`;
+                document.getElementById('hud-extra').innerText = `HP 3 · ${reviveTag}`;
             } else {
                 const left = enemies.filter(e => e.hp > 0).length;
                 const pres = president && president.hp > 0 ? 'ALIVE' : 'DOWN';
@@ -843,7 +936,7 @@
 
         function onTankDown(tank) {
             if (tank.id === 1) {
-                showModal('GAME OVER', '指揮官生命耗盡。', 'RETRY', returnToMenu);
+                triggerGameOver('指揮官生命耗盡。');
                 return;
             }
             cumulativeScore += tank.isPresident ? 2000 : 350;
@@ -996,7 +1089,7 @@
             if (Math.random() < 0.35) crazyExplode((50 + Math.random() * 500) * MAP_SCALE, (50 + Math.random() * 500) * MAP_SCALE);
             if (t > 3800 && gameActive) {
                 mapBlowing = false;
-                showModal('MAP OBLITERATED', '無線電鎖定成功，火箭把整張地圖炸成廢墟。', 'RETRY', returnToMenu);
+                triggerGameOver('無線電鎖定成功，火箭把整張地圖炸成廢墟。');
             }
         }
 
@@ -1035,19 +1128,21 @@
 
         function startQuiz(kind) {
             quizActive = true; quizKind = kind; paused = false;
+            freezeCampaignClock();
             document.getElementById('pause-overlay').classList.add('hidden');
-            const easy = kind === 'revive';
-            quizData = generateAlgebraQuiz(easy);
-            const seconds = easy ? 30 : 60;
-            document.getElementById('quiz-heading').innerText = `${seconds}s ALGEBRA`;
+            quizData = generateAlgebraQuiz();
+            const seconds = 30;
+            document.getElementById('quiz-heading').innerText = '30s S3–S4 ALGEBRA';
             document.getElementById('quiz-question').innerText = `解 x：  ${quizData.q}`;
-            document.getElementById('quiz-context').innerText = kind === 'revive'
-                ? (currentChapter === 1
-                    ? '雷達第三次鎖定。這是第一章與第二章共有的唯一復活機會。答對：取消火箭並繼續。答錯或逾時：地圖被炸毀。'
-                    : '你即將陣亡。這是第一章與第二章共有的唯一復活機會。答對：滿血復活。答錯或逾時：遊戲結束。')
-                : kind === 'player'
-                    ? '你即將陣亡。答對：復活並擊殺總統。答錯：遊戲結束。'
-                    : '總統即將倒下。答對：總統死亡。答錯：召喚 1 輛 3 命護衛坦克保護總統。';
+            document.getElementById('quiz-context').innerText = kind === 'chapter'
+                ? `第 ${['', '一', '二', '三'][currentChapter]} 章封鎖協議。解出中三至中四代數題才能進入戰場。每次重新出題，時限 30 秒。答錯或逾時：GAME OVER。`
+                : kind === 'revive'
+                    ? (currentChapter === 1
+                        ? '雷達第三次鎖定。這是第一章與第二章共有的唯一復活機會。答對：取消火箭並繼續。答錯或逾時：GAME OVER。'
+                        : '你即將陣亡。這是第一章與第二章共有的唯一復活機會。答對：滿血復活。答錯或逾時：GAME OVER。')
+                    : kind === 'player'
+                        ? '你即將陣亡。答對：復活並擊殺總統。答錯或逾時：GAME OVER。'
+                        : '總統即將倒下。答對：總統死亡。答錯或逾時：玩家陣亡，GAME OVER。';
             document.getElementById('quiz-answer').value = '';
             document.getElementById('quiz-timer').innerText = String(seconds);
             document.getElementById('quiz-overlay').classList.remove('hidden');
@@ -1074,69 +1169,94 @@
             if (quizTimerId) clearInterval(quizTimerId);
             document.getElementById('quiz-overlay').classList.add('hidden');
             const kind = quizKind; quizKind = null; quizData = null;
+            pendingLethal = null;
+
+            if (!correct) {
+                if (kind === 'president' && p1) p1.hp = 0;
+                triggerGameOver(kind === 'chapter'
+                    ? '章節代數答錯，戰役終止。'
+                    : kind === 'president'
+                        ? '總統瀕死題答錯，指揮官反而倒下。'
+                        : '數學題答錯，指揮官倒下。');
+                return;
+            }
+
+            unfreezeCampaignClock();
+            sfx.playPowerup();
+
+            if (kind === 'chapter') {
+                levelStartTime = Date.now();
+                lastRocketSalvo = Date.now();
+                if (currentChapter === 1) radarGraceUntil = Date.now() + 3000;
+                explodeAt(p1.x, p1.y, 22, '#38bdf8');
+                updateUI();
+                return;
+            }
 
             if (kind === 'revive') {
                 campaignReviveUsed = true;
-                if (correct) {
-                    p1.hp = p1.maxHp;
-                    radarScans = Math.min(radarScans, 2);
-                    radarGraceUntil = Date.now() + 2500;
-                    hiddenStatus = 'HIDDEN';
-                    sfx.playPowerup();
-                    explodeAt(p1.x, p1.y, 28, '#38bdf8');
-                    updateUI();
-                } else if (currentChapter === 1) {
-                    startCatastrophe();
-                } else {
-                    p1.hp = 0;
-                    showModal('GAME OVER', '復活代數答錯，指揮官倒下。', 'RETRY', returnToMenu);
-                }
-            } else if (kind === 'player') {
-                if (correct) {
-                    p1.hp = p1.maxHp;
-                    if (president && president.hp > 0) {
-                        president.hp = 0;
-                        explodeAt(president.x, president.y, 50, '#fbbf24');
-                        cumulativeScore += 2500;
-                    }
-                    sfx.playPowerup();
-                    updateUI();
-                    if (diamondsCollected >= 3) checkChapter3Win();
-                    else updateUI();
-                } else {
-                    p1.hp = 0;
-                    showModal('GAME OVER', '代數答錯，指揮官倒下。', 'RETRY', returnToMenu);
-                }
-            } else {
-                if (correct) {
-                    if (president) {
-                        president.hp = 0;
-                        explodeAt(president.x, president.y, 50, '#fbbf24');
-                        cumulativeScore += 2000;
-                    }
-                    sfx.playPowerup();
-                    updateUI();
-                    checkChapter3Win();
-                } else if (president) {
-                    president.hp = 1;
-                    if (summonedGuards < 5) {
-                        const pos = getSafeSpawnPos(20 * MAP_SCALE, [p1, president, ...enemies]);
-                        const guard = new Tank(40 + summonedGuards, pos.x, pos.y, 'enemy');
-                        guard.maxHp = 3; guard.hp = 3;
-                        enemies.push(guard);
-                        summonedGuards++;
-                        sfx.playAlarm();
-                    }
-                    updateUI();
-                }
+                p1.hp = p1.maxHp;
+                radarScans = Math.min(radarScans, 2);
+                radarGraceUntil = Date.now() + 2500;
+                hiddenStatus = 'HIDDEN';
+                explodeAt(p1.x, p1.y, 28, '#38bdf8');
+                updateUI();
+                return;
             }
-            pendingLethal = null;
+
+            if (kind === 'player') {
+                p1.hp = p1.maxHp;
+                if (president && president.hp > 0) {
+                    president.hp = 0;
+                    explodeAt(president.x, president.y, 50, '#fbbf24');
+                    cumulativeScore += 2500;
+                }
+                updateUI();
+                if (diamondsCollected >= 3) checkChapter3Win();
+                return;
+            }
+
+            if (president) {
+                president.hp = 0;
+                explodeAt(president.x, president.y, 50, '#fbbf24');
+                cumulativeScore += 2000;
+            }
+            updateUI();
+            checkChapter3Win();
+        }
+
+        function triggerGameOver(message) {
+            gameActive = false;
+            mapBlowing = false;
+            quizActive = false;
+            paused = false;
+            campaignPausedAt = 0;
+            if (quizTimerId) clearInterval(quizTimerId);
+            if (gameOverTimer) clearTimeout(gameOverTimer);
+            document.getElementById('quiz-overlay').classList.add('hidden');
+            document.getElementById('pause-overlay').classList.add('hidden');
+            document.getElementById('game-modal').classList.add('hidden');
+            document.getElementById('gameover-message').innerText = message || '';
+            const btn = document.getElementById('gameover-btn');
+            btn.classList.add('hidden');
+            btn.onclick = () => {
+                document.getElementById('gameover-overlay').classList.add('hidden');
+                returnToMenu();
+            };
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+            sfx.playAirRaid(3);
+            sfx.playAlarm();
+            flash = 1;
+            shake = 18;
+            gameOverTimer = setTimeout(() => btn.classList.remove('hidden'), 3000);
         }
 
         function showModal(title, msg, btnText, callback) {
             gameActive = false; mapBlowing = false; quizActive = false;
+            unfreezeCampaignClock();
             if (quizTimerId) clearInterval(quizTimerId);
             document.getElementById('quiz-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerText = msg;
             const btn = document.getElementById('modal-btn');
@@ -1147,9 +1267,11 @@
 
         function returnToMenu() {
             gameActive = false; paused = false; mapBlowing = false; quizActive = false;
-            campaignDeadline = 0;
+            campaignDeadline = 0; campaignPausedAt = 0;
+            if (gameOverTimer) clearTimeout(gameOverTimer);
             document.getElementById('pause-overlay').classList.add('hidden');
             document.getElementById('quiz-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
             document.getElementById('game-container').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
         }
@@ -1158,9 +1280,11 @@
             sfx.init();
             cumulativeScore = 0;
             campaignReviveUsed = false;
+            campaignPausedAt = 0;
             campaignDeadline = Date.now() + CAMPAIGN_TIME_LIMIT;
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('game-container').classList.remove('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
             startChapter(1);
         };
 
