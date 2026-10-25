@@ -65,16 +65,90 @@
             width: 100%;
         }
 
+        #move-zone,
+        #fire-zone {
+            position: absolute;
+            bottom: 0;
+            width: 50%;
+            height: 56%;
+            z-index: 25;
+            touch-action: none;
+            pointer-events: none;
+        }
+        #move-zone { left: 0; }
+        #fire-zone { right: 0; }
+
+        @media (pointer: coarse) {
+            #move-zone,
+            #fire-zone {
+                pointer-events: auto;
+            }
+        }
+
         #joystick-base,
         #floating-btn {
-            width: clamp(76px, 13vw, 104px);
-            height: clamp(76px, 13vw, 104px);
+            width: clamp(108px, 22vw, 152px);
+            height: clamp(108px, 22vw, 152px);
+            pointer-events: auto;
+            transition: box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
         }
 
         #joystick-stick,
-        #floating-btn > div {
-            width: clamp(38px, 7vw, 56px);
-            height: clamp(38px, 7vw, 56px);
+        #floating-btn .fire-core {
+            width: clamp(48px, 10vw, 68px);
+            height: clamp(48px, 10vw, 68px);
+        }
+
+        #floating-btn .fire-core {
+            position: absolute;
+        }
+
+        #floating-btn.fire-active {
+            border-color: #bfdbfe;
+            background: rgba(30, 64, 175, 0.82);
+            box-shadow: 0 0 28px rgba(96, 165, 250, 0.95);
+        }
+
+        .control-label {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -22px;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: #93c5fd;
+            white-space: nowrap;
+            text-shadow: 0 2px 4px #000;
+        }
+
+        #pause-btn {
+            min-width: 44px;
+            min-height: 44px;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        #control-hint {
+            font-size: clamp(10px, 2.4vw, 13px);
+            line-height: 1.7;
+            pointer-events: none;
+            animation: hintFade 5s ease forwards;
+        }
+
+        @keyframes hintFade {
+            0%, 70% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+
+        .keycap {
+            display: inline-block;
+            border: 2px solid #6366f1;
+            background: #1e1b4b;
+            color: #c7d2fe;
+            padding: 4px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            font-size: 0.85em;
         }
 
         #modal-title,
@@ -217,11 +291,18 @@
         <p class="text-[36px] text-slate-400 mb-8 leading-relaxed">
             總時限 1:30 (時間跨關累積，不會重置！)<br>
             關卡越高，敵機越多，同時 ❤️ 上限越多！<br>
-        <div class="mt-8 text-[31px] text-left text-slate-400 space-y-3 bg-slate-900/60 p-6 rounded border border-indigo-900 leading-relaxed">
-            <p class="text-blue-400 font-bold">P1 (BLUE TANK) 控制：</p>
-            <p>移動: 使用左下角【飄浮移動搖桿】多點觸控自由移動</p>
-            <p>瞄準/開火: 使用右下角【飄浮瞄準發射按鈕】同時拖曳瞄準並連發</p>
-            <p>暫停: 按下鍵盤【空白鍵 SPACE】</p>
+        <div class="mt-8 text-[22px] md:text-[26px] text-left text-slate-300 space-y-4 bg-slate-900/60 p-6 rounded border border-indigo-900 leading-relaxed">
+            <p class="text-blue-400 font-bold text-center">怎麼操作 HOW TO PLAY</p>
+            <p class="text-sky-300 font-bold">🖥️ 鍵盤 + 滑鼠</p>
+            <p>移動 <span class="keycap">W A S D</span> 或 <span class="keycap">↑ ↓ ← →</span></p>
+            <p>瞄準 移動滑鼠（砲管跟著游標，藍色瞄準線會顯示彈道）</p>
+            <p>開火 按住滑鼠左鍵 或 <span class="keycap">空白鍵</span></p>
+            <p>暫停 <span class="keycap">P</span> / <span class="keycap">ESC</span> 或畫面暫停鈕</p>
+            <hr class="border-slate-800">
+            <p class="text-pink-300 font-bold">📱 手機 / 平板</p>
+            <p>左手：按住左下【MOVE】拖曳移動</p>
+            <p>右手：按住右側【FIRE】就會連發</p>
+            <p>輕按自動鎖定最近敵機，拖曳搖桿可手動瞄準</p>
             <hr class="border-slate-800">
             <p class="text-pink-400 font-bold">規則提示：</p>
             <p>子彈撞牆或障礙物可反彈 1 次，小心被自己反彈的子彈擊中！過關後 ❤️ 會補滿。</p>
@@ -250,6 +331,7 @@
             <div class="text-center">
                 <div class="text-slate-400 text-[31px] mb-2" id="hud-level">LEVEL 01</div>
                 <div class="text-white text-[43px] font-bold bg-slate-900 px-4 py-2 rounded border border-slate-700" id="timer">01:30</div>
+                <button id="pause-btn" type="button" onclick="window.togglePause()" class="mt-2 px-3 py-1 bg-indigo-700 hover:bg-indigo-500 rounded border-b-2 border-indigo-900 text-white">⏸</button>
             </div>
 
             <div class="flex flex-col items-end space-y-2">
@@ -260,18 +342,38 @@
 
         <div class="relative bg-slate-950 p-1 border-4 border-indigo-900 rounded-b-lg shadow-inner">
             <canvas id="gameCanvas" width="600" height="600" class="block bg-slate-900"></canvas>
+
+            <div id="control-hint" class="absolute inset-x-0 top-4 z-20 flex justify-center px-3">
+                <div class="bg-black/80 border-2 border-blue-400 rounded-lg px-4 py-3 text-center text-blue-100 shadow-xl">
+                    移動 WASD / 方向鍵　瞄準 滑鼠　開火 左鍵或空白鍵<br>
+                    手機：左 MOVE 移動　右 FIRE 輕按鎖定 / 拖曳瞄準
+                </div>
+            </div>
             
-            <!-- 飄浮移動搖桿 (左下角) -->
-            <div id="joystick-base" class="absolute bottom-6 left-6 w-28 h-28 bg-indigo-950/80 border-4 border-indigo-600 rounded-full flex items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md z-30 select-none">
-                <div id="joystick-stick" class="w-14 h-14 bg-blue-600 rounded-full shadow-inner border-2 border-blue-400 absolute transition-transform duration-75"></div>
+            <!-- 左側大範圍移動區 -->
+            <div id="move-zone">
+                <div id="joystick-base" class="absolute bottom-8 left-6 bg-indigo-950/70 border-4 border-indigo-500 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md select-none">
+                    <div class="absolute text-indigo-400/80 text-[10px] -top-1">▲</div>
+                    <div class="absolute text-indigo-400/80 text-[10px] -bottom-1">▼</div>
+                    <div class="absolute text-indigo-400/80 text-[10px] left-1">◀</div>
+                    <div class="absolute text-indigo-400/80 text-[10px] right-1">▶</div>
+                    <div id="joystick-stick" class="bg-blue-500 rounded-full shadow-inner border-2 border-blue-200 absolute"></div>
+                    <span class="control-label">MOVE</span>
+                </div>
             </div>
 
-            <!-- 飄浮瞄準發射按鈕 (右下角) -->
-            <div id="floating-btn" class="absolute bottom-6 right-6 w-28 h-28 bg-indigo-950/80 border-4 border-blue-600 rounded-full flex flex-col items-center justify-center cursor-pointer shadow-2xl backdrop-blur-md z-30 select-none group">
-                <div class="w-14 h-14 bg-blue-600 group-hover:bg-blue-500 rounded-full shadow-inner flex items-center justify-center border-2 border-blue-300">
-                    <span class="text-xl">🎯</span>
+            <!-- 右側大範圍瞄準開火區 -->
+            <div id="fire-zone">
+                <div id="floating-btn" class="absolute bottom-8 right-6 bg-blue-950/70 border-4 border-blue-400 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md select-none">
+                    <div class="absolute text-blue-300/80 text-[10px] -top-1">▲</div>
+                    <div class="absolute text-blue-300/80 text-[10px] -bottom-1">▼</div>
+                    <div class="absolute text-blue-300/80 text-[10px] left-1">◀</div>
+                    <div class="absolute text-blue-300/80 text-[10px] right-1">▶</div>
+                    <div class="fire-core bg-blue-500 rounded-full shadow-inner flex items-center justify-center border-2 border-blue-200">
+                        <span class="text-xl">🎯</span>
+                    </div>
+                    <span class="control-label">AIM + FIRE</span>
                 </div>
-                <span class="text-[22px] text-blue-300 font-bold mt-1 tracking-tighter">FIRE</span>
             </div>
 
             <!-- 結算彈窗 (文字已放大 2.4 倍) -->
@@ -287,14 +389,17 @@
             <div id="pause-overlay" class="hidden absolute inset-0 bg-black/75 flex flex-col items-center justify-center z-40 text-center">
                 <div class="border-4 border-indigo-600 bg-slate-950 p-10 rounded shadow-2xl max-w-lg">
                     <h2 class="text-[72px] font-bold mb-6 text-white animate-pulse">GAME PAUSED</h2>
-                    <p class="text-[31px] text-indigo-300 leading-relaxed">PRESS [SPACE] AGAIN TO CONTINUE</p>
+                    <p class="text-[22px] text-indigo-300 leading-relaxed mb-6">按 P / ESC 或下方按鈕繼續</p>
+                    <button type="button" onclick="window.togglePause()" class="py-3 px-8 bg-blue-600 hover:bg-blue-500 text-[18px] rounded border-b-4 border-blue-800">CONTINUE</button>
                 </div>
             </div>
         </div>
 
         <!-- 底部提示 (文字已放大 2.4 倍) -->
-        <div class="mt-4 text-[26px] text-slate-500 text-center max-w-[600px]">
-            提示: 子彈擊中牆壁或岩石後會反彈一次！千祈唔好俾自己發射嘅子彈反彈擊中，否則同樣扣除 1 顆 ❤️！
+        <div class="mt-4 text-[13px] md:text-[16px] text-slate-400 text-center max-w-[600px] leading-relaxed">
+            WASD / 方向鍵移動　滑鼠瞄準　左鍵或空白鍵開火　P 暫停<br>
+            手機：右 FIRE 輕按鎖定最近敵人，拖曳可手動瞄準<br>
+            子彈撞牆會反彈 1 次，被自己的子彈打中也會扣 ❤️！
         </div>
     </div>
 
@@ -375,6 +480,8 @@
         const trackCtx = trackCanvas.getContext('2d');
 
         let mouseX = 300, mouseY = 300, isMouseDown = false;
+        const keys = Object.create(null);
+        let spaceHeld = false;
 
         // 多點觸控狀態與唯一識別碼 (Multi-Touch tracking)
         let isJoystickActive = false;
@@ -383,11 +490,30 @@
         let joystickPower = 0;
         const joystickBase = document.getElementById('joystick-base');
         const joystickStick = document.getElementById('joystick-stick');
+        const moveZone = document.getElementById('move-zone');
+        const fireZone = document.getElementById('fire-zone');
 
         let isFloatingActive = false;
         let floatingTouchId = null;
         let floatingAngle = 0;
+        let floatingAimPower = 0;
+        let fireOriginX = 0;
+        let fireOriginY = 0;
+        let lockedEnemy = null;
         const floatingBtn = document.getElementById('floating-btn');
+        const fireCore = floatingBtn.querySelector('.fire-core');
+
+        function canvasPosFromClient(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function getJoystickMaxRadius() {
+            return Math.max(28, joystickBase.offsetWidth * 0.32);
+        }
 
         function updateJoystick(clientX, clientY) {
             const rect = joystickBase.getBoundingClientRect();
@@ -396,126 +522,230 @@
             const dx = clientX - centerX;
             const dy = clientY - centerY;
             const dist = Math.hypot(dx, dy);
-            const maxRadius = 32;
+            const maxRadius = getJoystickMaxRadius();
 
             joystickAngle = Math.atan2(dy, dx);
-            joystickPower = Math.min(1, dist / maxRadius);
+            joystickPower = dist < 8 ? 0 : Math.min(1, dist / maxRadius);
 
             const stickX = Math.cos(joystickAngle) * Math.min(dist, maxRadius);
             const stickY = Math.sin(joystickAngle) * Math.min(dist, maxRadius);
             joystickStick.style.transform = `translate(${stickX}px, ${stickY}px)`;
         }
 
-        function updateFloatingAim(clientX, clientY) {
-            const rect = floatingBtn.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            const dx = clientX - centerX;
-            const dy = clientY - centerY;
-            if (Math.hypot(dx, dy) > 10) {
-                floatingAngle = Math.atan2(dy, dx);
-            }
+        function resetJoystick() {
+            isJoystickActive = false;
+            joystickTouchId = null;
+            joystickPower = 0;
+            joystickStick.style.transform = 'translate(0px, 0px)';
         }
 
-        joystickBase.addEventListener('mousedown', (e) => {
+        function getFireMaxRadius() {
+            return Math.max(32, floatingBtn.offsetWidth * 0.34);
+        }
+
+        function placeFirePadAt(clientX, clientY) {
+            const zoneRect = fireZone.getBoundingClientRect();
+            const btnW = floatingBtn.offsetWidth;
+            const btnH = floatingBtn.offsetHeight;
+            let left = clientX - zoneRect.left - btnW / 2;
+            let top = clientY - zoneRect.top - btnH / 2;
+            left = Math.max(4, Math.min(left, zoneRect.width - btnW - 4));
+            top = Math.max(4, Math.min(top, zoneRect.height - btnH - 4));
+            floatingBtn.style.left = left + 'px';
+            floatingBtn.style.top = top + 'px';
+            floatingBtn.style.right = 'auto';
+            floatingBtn.style.bottom = 'auto';
+        }
+
+        function getEnemyInAimCone(tank, angle, coneDeg) {
+            const minCos = Math.cos(coneDeg * Math.PI / 180);
+            let best = null, bestDist = Infinity;
+            for (let i = 0; i < enemies.length; i++) {
+                const e = enemies[i];
+                if (e.hp <= 0) continue;
+                const dx = e.x - tank.x, dy = e.y - tank.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < 1) continue;
+                const dot = (dx / dist) * Math.cos(angle) + (dy / dist) * Math.sin(angle);
+                if (dot >= minCos && dist < bestDist) {
+                    bestDist = dist;
+                    best = e;
+                }
+            }
+            return best;
+        }
+
+        function resolveFireAim(tank) {
+            if (floatingAimPower > 0.14) {
+                const assisted = getEnemyInAimCone(tank, floatingAngle, 26);
+                lockedEnemy = assisted;
+                return assisted ? Math.atan2(assisted.y - tank.y, assisted.x - tank.x) : floatingAngle;
+            }
+            const nearest = tank.findClosestEnemy();
+            lockedEnemy = nearest;
+            return nearest ? Math.atan2(nearest.y - tank.y, nearest.x - tank.x) : tank.turretAngle;
+        }
+
+        function updateFloatingAim(clientX, clientY) {
+            const dx = clientX - fireOriginX;
+            const dy = clientY - fireOriginY;
+            const dist = Math.hypot(dx, dy);
+            const maxRadius = getFireMaxRadius();
+
+            if (dist > 12) {
+                floatingAngle = Math.atan2(dy, dx);
+                floatingAimPower = Math.min(1, dist / maxRadius);
+            } else {
+                floatingAimPower = 0;
+            }
+
+            const stickX = Math.cos(floatingAngle) * Math.min(dist, maxRadius);
+            const stickY = Math.sin(floatingAngle) * Math.min(dist, maxRadius);
+            if (fireCore) fireCore.style.transform = `translate(${stickX}px, ${stickY}px)`;
+        }
+
+        function resetFireStick() {
+            isFloatingActive = false;
+            floatingTouchId = null;
+            floatingAimPower = 0;
+            lockedEnemy = null;
+            floatingBtn.classList.remove('fire-active');
+            floatingBtn.style.left = '';
+            floatingBtn.style.top = '';
+            floatingBtn.style.right = '';
+            floatingBtn.style.bottom = '';
+            if (fireCore) fireCore.style.transform = 'translate(0px, 0px)';
+        }
+
+        function startMoveControl(clientX, clientY, touchId) {
             isJoystickActive = true;
-            updateJoystick(e.clientX, e.clientY);
-        });
-        floatingBtn.addEventListener('mousedown', (e) => {
+            if (touchId !== undefined) joystickTouchId = touchId;
+            updateJoystick(clientX, clientY);
+        }
+
+        function startFireControl(clientX, clientY, touchId) {
             isFloatingActive = true;
-            updateFloatingAim(e.clientX, e.clientY);
+            if (touchId !== undefined) floatingTouchId = touchId;
+            placeFirePadAt(clientX, clientY);
+            const rect = floatingBtn.getBoundingClientRect();
+            fireOriginX = rect.left + rect.width / 2;
+            fireOriginY = rect.top + rect.height / 2;
+            floatingAimPower = 0;
+            floatingBtn.classList.add('fire-active');
+            updateFloatingAim(clientX, clientY);
+        }
+
+        moveZone.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startMoveControl(e.clientX, e.clientY);
+        });
+        fireZone.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startFireControl(e.clientX, e.clientY);
         });
         window.addEventListener('mousemove', (e) => {
-            if (isJoystickActive) updateJoystick(e.clientX, e.clientY);
-            if (isFloatingActive) updateFloatingAim(e.clientX, e.clientY);
+            if (isJoystickActive && joystickTouchId === null) updateJoystick(e.clientX, e.clientY);
+            if (isFloatingActive && floatingTouchId === null) updateFloatingAim(e.clientX, e.clientY);
         });
         window.addEventListener('mouseup', () => {
-            isJoystickActive = false; joystickPower = 0;
-            joystickStick.style.transform = `translate(0px, 0px)`;
-            isFloatingActive = false;
+            if (joystickTouchId === null) resetJoystick();
+            if (floatingTouchId === null) resetFireStick();
         });
 
-        joystickBase.addEventListener('touchstart', (e) => {
+        moveZone.addEventListener('touchstart', (e) => {
             if (joystickTouchId === null) {
                 const touch = e.changedTouches[0];
-                joystickTouchId = touch.identifier;
-                isJoystickActive = true;
-                updateJoystick(touch.clientX, touch.clientY);
+                startMoveControl(touch.clientX, touch.clientY, touch.identifier);
                 e.preventDefault();
             }
         }, { passive: false });
 
-        floatingBtn.addEventListener('touchstart', (e) => {
+        fireZone.addEventListener('touchstart', (e) => {
             if (floatingTouchId === null) {
                 const touch = e.changedTouches[0];
-                floatingTouchId = touch.identifier;
-                isFloatingActive = true;
-                updateFloatingAim(touch.clientX, touch.clientY);
+                startFireControl(touch.clientX, touch.clientY, touch.identifier);
                 e.preventDefault();
             }
         }, { passive: false });
 
         window.addEventListener('touchmove', (e) => {
+            let used = false;
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
                 if (isJoystickActive && touch.identifier === joystickTouchId) {
                     updateJoystick(touch.clientX, touch.clientY);
+                    used = true;
                 }
                 if (isFloatingActive && touch.identifier === floatingTouchId) {
                     updateFloatingAim(touch.clientX, touch.clientY);
+                    used = true;
                 }
             }
+            if (used) e.preventDefault();
         }, { passive: false });
 
-        window.addEventListener('touchend', (e) => {
+        function handleTouchEnd(e) {
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-                if (touch.identifier === joystickTouchId) {
-                    isJoystickActive = false;
-                    joystickTouchId = null;
-                    joystickPower = 0;
-                    joystickStick.style.transform = `translate(0px, 0px)`;
-                }
-                if (touch.identifier === floatingTouchId) {
-                    isFloatingActive = false;
-                    floatingTouchId = null;
-                }
+                if (touch.identifier === joystickTouchId) resetJoystick();
+                if (touch.identifier === floatingTouchId) resetFireStick();
             }
-        });
+        }
+        window.addEventListener('touchend', handleTouchEnd);
+        window.addEventListener('touchcancel', handleTouchEnd);
 
-        window.addEventListener('touchcancel', (e) => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === joystickTouchId) {
-                    isJoystickActive = false;
-                    joystickTouchId = null;
-                    joystickPower = 0;
-                    joystickStick.style.transform = `translate(0px, 0px)`;
-                }
-                if (touch.identifier === floatingTouchId) {
-                    isFloatingActive = false;
-                    floatingTouchId = null;
-                }
-            }
-        });
+        const pauseKeys = { KeyP: true, Escape: true };
+        const fireKeys = { Space: true, KeyJ: true, KeyZ: true };
 
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
+            keys[e.code] = true;
+            if (pauseKeys[e.code]) {
                 e.preventDefault();
-                if (gameActive) {
-                    paused = !paused;
-                    document.getElementById('pause-overlay').classList.toggle('hidden', !paused);
-                }
+                window.togglePause();
+            }
+            if (fireKeys[e.code]) {
+                e.preventDefault();
+                spaceHeld = true;
             }
         });
-
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-            mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            if (fireKeys[e.code]) spaceHeld = false;
         });
-        canvas.addEventListener('mousedown', (e) => { if (e.button === 0) isMouseDown = true; });
+        window.addEventListener('blur', () => {
+            Object.keys(keys).forEach(k => keys[k] = false);
+            spaceHeld = false;
+            isMouseDown = false;
+        });
+
+        function updateMouseFromEvent(e) {
+            const pos = canvasPosFromClient(e.clientX, e.clientY);
+            mouseX = pos.x;
+            mouseY = pos.y;
+        }
+        canvas.addEventListener('mousemove', updateMouseFromEvent);
+        window.addEventListener('mousemove', (e) => {
+            if (!isJoystickActive && !isFloatingActive) updateMouseFromEvent(e);
+        });
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                isMouseDown = true;
+                updateMouseFromEvent(e);
+            }
+        });
         window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
+
+        window.togglePause = function() {
+            if (!gameActive) return;
+            paused = !paused;
+            document.getElementById('pause-overlay').classList.toggle('hidden', !paused);
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) pauseBtn.textContent = paused ? '▶' : '⏸';
+        };
+
+        function isKeyDown(...codes) {
+            return codes.some(code => keys[code]);
+        }
 
         const MAP_SIZE = 600, BORDER_SIZE = 20;
         const obstacles = [
@@ -585,15 +815,27 @@
                         moveX = Math.cos(joystickAngle) * this.speed * joystickPower;
                         moveY = Math.sin(joystickAngle) * this.speed * joystickPower;
                         this.angle = joystickAngle;
+                    } else {
+                        let kx = 0, ky = 0;
+                        if (isKeyDown('KeyW', 'ArrowUp')) ky -= 1;
+                        if (isKeyDown('KeyS', 'ArrowDown')) ky += 1;
+                        if (isKeyDown('KeyA', 'ArrowLeft')) kx -= 1;
+                        if (isKeyDown('KeyD', 'ArrowRight')) kx += 1;
+                        if (kx !== 0 || ky !== 0) {
+                            const len = Math.hypot(kx, ky);
+                            moveX = (kx / len) * this.speed;
+                            moveY = (ky / len) * this.speed;
+                            this.angle = Math.atan2(moveY, moveX);
+                        }
                     }
 
                     if (isFloatingActive) {
-                        this.turretAngle = floatingAngle;
+                        this.turretAngle = resolveFireAim(this);
                         this.shoot();
                     } else {
-                        let closest = this.findClosestEnemy();
-                        if (closest) this.turretAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
-                        if (isMouseDown) this.shoot();
+                        lockedEnemy = null;
+                        this.turretAngle = Math.atan2(mouseY - this.y, mouseX - this.x);
+                        if (isMouseDown || spaceHeld) this.shoot();
                     }
                 } else {
                     if (p1 && p1.hp > 0) {
@@ -606,12 +848,11 @@
                 }
 
                 if (moveX !== 0 || moveY !== 0) {
-                    if (this.controls === 'wasd' && !isJoystickActive) {
-                        this.angle = Math.atan2(moveY, moveX);
-                    }
                     let nx = this.x + moveX;
                     let ny = this.y + moveY;
                     if (this.canMoveTo(nx, ny)) { this.x = nx; this.y = ny; }
+                    else if (this.canMoveTo(nx, this.y)) { this.x = nx; }
+                    else if (this.canMoveTo(this.x, ny)) { this.y = ny; }
                 }
             }
 
@@ -733,6 +974,20 @@
 
             paused = false;
             document.getElementById('pause-overlay').classList.add('hidden');
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) pauseBtn.textContent = '⏸';
+            resetJoystick();
+            resetFireStick();
+            spaceHeld = false;
+            isMouseDown = false;
+            const hint = document.getElementById('control-hint');
+            if (hint) {
+                hint.style.animation = 'none';
+                hint.offsetHeight;
+                hint.style.animation = '';
+                hint.style.opacity = '';
+                hint.style.visibility = '';
+            }
 
             p1 = new Tank(1, 100, 300, 'blue', 'wasd');
             p1.maxHp = currentLevel + 2; p1.hp = p1.maxHp;
@@ -866,8 +1121,51 @@
             });
 
             bullets.forEach(b => b.draw());
+            if (p1 && p1.hp > 0) {
+                const aimX = Math.cos(p1.turretAngle);
+                const aimY = Math.sin(p1.turretAngle);
+                const startX = p1.x + aimX * 24;
+                const startY = p1.y + aimY * 24;
+                const endX = p1.x + aimX * 260;
+                const endY = p1.y + aimY * 260;
+                ctx.save();
+                ctx.strokeStyle = lockedEnemy ? 'rgba(251, 191, 36, 0.75)' : 'rgba(96, 165, 250, 0.7)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([10, 7]);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                const rx = p1.x + aimX * 170;
+                const ry = p1.y + aimY * 170;
+                ctx.strokeStyle = lockedEnemy ? 'rgba(252, 211, 77, 0.95)' : 'rgba(191, 219, 254, 0.95)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(rx, ry, 9, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(rx - 14, ry); ctx.lineTo(rx + 14, ry);
+                ctx.moveTo(rx, ry - 14); ctx.lineTo(rx, ry + 14);
+                ctx.stroke();
+                ctx.restore();
+            }
             if (p1) p1.draw();
             enemies.forEach(e => e.draw());
+            if (lockedEnemy && lockedEnemy.hp > 0) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.95)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(lockedEnemy.x, lockedEnemy.y, lockedEnemy.radius + 10, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(253, 224, 71, 0.85)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(lockedEnemy.x, lockedEnemy.y, lockedEnemy.radius + 16, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
 
             // 4邊框關顯示 (Canvas 文字已放大 2.4 倍: 10px -> 24px)
             ctx.save();
@@ -919,4 +1217,4 @@
         }
     </script>
 </body>
-</html>，
+</html>
