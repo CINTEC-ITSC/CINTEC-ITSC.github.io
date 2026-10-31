@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>進入迷宮 — 無盡迷宮</title>
+  <title>月光迷宫</title>
   <link rel="stylesheet" href="/theme.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -226,10 +226,10 @@
   <header class="pointer-events-none absolute left-0 right-0 top-0 z-30">
     <div class="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4">
       <div class="flex items-center gap-3">
-        <span class="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-primary-contrast)] font-[var(--font-heading)] shadow-[0_0_24px_rgba(212,160,23,0.35)]">迷宮</span>
+        <span class="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-primary-contrast)] font-[var(--font-heading)] shadow-[0_0_24px_rgba(212,160,23,0.35)]">月光</span>
         <div>
           <p class="text-[10px] font-bold tracking-[0.42em] text-[var(--color-primary)]">MOONLIT GARDEN</p>
-          <p class="text-xl font-black leading-none font-[var(--font-heading)]">無盡迷宮</p>
+          <p class="text-xl font-black leading-none font-[var(--font-heading)]">月光迷宫</p>
         </div>
       </div>
       <div class="brand-moon h-8 w-8 rounded-full bg-[#f3ead8]/80"></div>
@@ -266,7 +266,7 @@
   <div id="startOverlay" class="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-bg)]/92 px-6 backdrop-blur-sm">
     <div class="start-card w-full max-w-xl rounded-[calc(var(--radius)*1.4)] border border-[var(--color-primary)]/30 bg-[var(--color-surface)] p-10 text-center">
       <p class="text-sm font-bold tracking-[0.35em] text-[var(--color-primary)]">月光下的冒險，即將開始</p>
-      <h1 class="mt-4 font-[var(--font-heading)] text-5xl font-black">無盡迷宮</h1>
+      <h1 class="mt-4 font-[var(--font-heading)] text-5xl font-black">月光迷宫</h1>
       <div class="gold-line mx-auto mt-6 w-40"></div>
       <p class="mt-6 text-xl leading-relaxed text-[var(--color-muted)]">在夜色散盡前集齊四把鑰匙，穿越迷宮，抵達頂端出口！</p>
       <div class="mt-8 space-y-3 rounded-[var(--radius)] border border-[var(--color-primary)]/15 bg-[var(--color-bg)] px-6 py-5 text-left text-lg">
@@ -282,7 +282,13 @@
     <div class="w-full max-w-5xl">
       <p class="mb-3 text-center text-sm font-bold tracking-[0.3em] text-[var(--color-primary)]">意外相逢</p>
       <h2 class="mb-4 text-center font-[var(--font-heading)] text-4xl font-black md:text-5xl">阿嬤正在穿越迷宮小徑</h2>
-      <div class="gold-line mx-auto mb-10 w-48"></div>
+      <div class="gold-line mx-auto mb-6 w-48"></div>
+      <p class="mb-5 text-center text-lg font-black text-[#ffd45c]">注意：阿嬤可能會生氣，請慎選你的行動！</p>
+      <div class="mb-8 flex flex-wrap items-center justify-center gap-3">
+        <button id="btnSlowDown" type="button" class="pointer-events-auto rounded-xl border border-[var(--color-primary)]/50 bg-[#17130a] px-5 py-3 font-bold text-white transition hover:bg-[#3a2607]">減速 −</button>
+        <span id="speedReadout" class="min-w-24 text-center text-lg font-black">速度：1.0×</span>
+        <button id="btnSpeedUp" type="button" class="pointer-events-auto rounded-xl border border-[var(--color-primary)]/50 bg-[#17130a] px-5 py-3 font-bold text-white transition hover:bg-[#3a2607]">加速 +</button>
+      </div>
       <div class="grid gap-5 md:grid-cols-3">
         <button data-choice="ignore" class="card-in rounded-[calc(var(--radius)*1.2)] border border-[var(--color-primary)]/25 bg-[var(--color-surface)] p-8 text-left transition hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[0_16px_40px_rgba(212,160,23,0.2)]">
           <p class="text-sm tracking-[0.25em] text-[var(--color-muted)]">選擇一・獨自前行</p>
@@ -357,6 +363,7 @@
     const goOverlay = document.getElementById('goOverlay');
     const goReason = document.getElementById('goReason');
     const winOverlay = document.getElementById('winOverlay');
+    const speedReadout = document.getElementById('speedReadout');
 
     let W = 0,
       H = 0,
@@ -681,6 +688,8 @@
 
     function resetRun() {
       generateMaze();
+      baseSpeed = 215;
+      updateSpeedReadout();
       const s = cellCenter(startCell.c, startCell.r);
       player = {
         x: s.x,
@@ -757,6 +766,10 @@
 
     function fourKeys() {
       return collected.hidden[0] && collected.hidden[1] && collected.pot && collected.exit;
+    }
+
+    function updateSpeedReadout() {
+      speedReadout.textContent = `速度：${(baseSpeed / 215).toFixed(1)}×`;
     }
 
     function updateHud() {
@@ -1052,6 +1065,14 @@
 
     document.querySelectorAll('#grandmaOverlay [data-choice]').forEach((btn) => {
       btn.addEventListener('click', () => applyChoice(btn.getAttribute('data-choice')));
+    });
+    document.getElementById('btnSlowDown').addEventListener('click', () => {
+      baseSpeed = Math.max(130, baseSpeed - 25);
+      updateSpeedReadout();
+    });
+    document.getElementById('btnSpeedUp').addEventListener('click', () => {
+      baseSpeed = Math.min(400, baseSpeed + 25);
+      updateSpeedReadout();
     });
 
     function startPlaying() {
