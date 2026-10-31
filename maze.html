@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>月光迷宫</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: #070b0a; color: #fff8e8; font-family: system-ui, sans-serif; letter-spacing: .015em; }
+    p, h1, h2 { margin: 0; }
+    button { font: inherit; cursor: pointer; }
+    #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .hidden { display: none !important; }
+    header { position: absolute; z-index: 2; inset: 0 0 auto; padding: 16px 24px 0; pointer-events: none; background: linear-gradient(180deg, rgba(4,8,6,.94), rgba(4,8,6,.72)); }
+    .header-inner { max-width: 1600px; margin: auto; display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-badge { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #d4a017; color: #17130a; font-size: 14px; font-weight: 900; box-shadow: 0 0 24px rgba(212,160,23,.35); }
+    .brand-caption { color: #d4a017; font-size: 10px; font-weight: 700; letter-spacing: .42em; }
+    .brand-title { font-size: 20px; font-weight: 900; }
+    .moon { width: 32px; height: 32px; border-radius: 50%; background: #f3ead8; box-shadow: 0 0 24px rgba(243,234,216,.3); }
+    .gold-line { height: 1px; background: linear-gradient(90deg, transparent, rgba(212,160,23,.85), transparent); }
+    #hud { position: absolute; z-index: 2; top: 80px; left: 0; right: 0; padding: 0 24px; pointer-events: none; }
+    .hud-inner { max-width: 1600px; margin: auto; display: flex; justify-content: space-between; gap: 12px; }
+    .hud-panel { padding: 16px 24px; border: 1px solid rgba(232,197,71,.38); border-radius: 14px; background: rgba(7,16,12,.94); box-shadow: 0 16px 48px rgba(0,0,0,.45); text-shadow: 0 1px 4px #000; }
+    .hud-panel:last-child { text-align: right; }
+    .hud-label { color: #d7d2c8; font-size: 12px; letter-spacing: .25em; }
+    .hud-value { margin-top: 4px; font-size: 32px; font-weight: 900; font-variant-numeric: tabular-nums; color: #e8c547; }
+    .hud-detail { margin-top: 8px; color: #d7d2c8; font-size: 14px; }
+    .overlay { position: absolute; z-index: 3; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(7,11,10,.96); text-align: center; text-shadow: 0 2px 8px #000; }
+    .card { width: 100%; max-width: 576px; padding: 40px; border: 1px solid rgba(232,197,71,.38); border-radius: 22px; background: rgba(7,16,12,.98); box-shadow: 0 40px 100px rgba(0,0,0,.55); }
+    .eyebrow { color: #e8c547; font-size: 14px; font-weight: 700; letter-spacing: .35em; }
+    h1 { margin-top: 16px; font-size: clamp(36px, 7vw, 48px); font-weight: 900; }
+    .card .gold-line { width: 160px; margin: 24px auto 0; }
+    .description { margin-top: 24px; color: #d7d2c8; font-size: 20px; line-height: 1.6; }
+    .instructions { margin-top: 32px; padding: 20px 24px; border: 1px solid rgba(212,160,23,.2); border-radius: 14px; background: #070b0a; text-align: left; font-size: 18px; line-height: 1.8; }
+    .instructions strong { color: #e8c547; }
+    .action { margin-top: 32px; padding: 16px 40px; border: 1px solid rgba(255,240,180,.75); border-radius: 14px; background: linear-gradient(135deg, #ffe38a, #e8b833 48%, #bd7b12); color: #17130a; font-size: 24px; font-weight: 900; box-shadow: 0 10px 28px rgba(212,160,23,.45); transition: transform .18s, filter .18s; }
+    .action:hover { transform: translateY(-3px); filter: brightness(1.08); }
+    .action:focus-visible { outline: 3px solid #fff8df; outline-offset: 4px; }
+    .end-title { color: #e8c547; font-size: clamp(40px, 9vw, 64px); font-weight: 900; }
+    #goOverlay { background: rgba(0,0,0,.85); }
+    #goOverlay .end-title { color: #e23d3d; font-size: clamp(56px, 14vw, 110px); text-shadow: 0 0 40px rgba(226,61,61,.85), 0 8px 0 #4a1010; }
+    @media (max-width: 600px), (max-height: 600px) {
+      .card { padding: 24px; max-height: 94vh; overflow: auto; }
+      .instructions { margin-top: 18px; padding: 12px 16px; font-size: 15px; }
+      .description { margin-top: 16px; font-size: 17px; }
+      .action { margin-top: 20px; padding: 12px 32px; font-size: 20px; }
+      #hud { padding: 0 12px; }
+      .hud-panel { padding: 10px 12px; }
+      .hud-value { font-size: 23px; }
+      .hud-detail { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-badge">月光</span>
+        <div><p class="brand-caption">MOONLIT GARDEN</p><p class="brand-title">月光迷宫</p></div>
+      </div>
+      <div class="moon" aria-hidden="true"></div>
+    </div>
+    <div class="gold-line"></div>
+  </header>
+
+  <canvas id="game" aria-label="月光迷宮遊戲畫面"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hud-inner">
+      <div class="hud-panel">
+        <p class="hud-label">探索目標</p>
+        <p class="hud-value">尋找出口</p>
+        <p class="hud-detail">使用 W A S D 或方向鍵移動</p>
+      </div>
+      <div class="hud-panel">
+        <p class="hud-label">剩餘時間</p>
+        <p id="hudTime" class="hud-value">02:00</p>
+        <p class="hud-detail">趕在天亮前找到出口</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="startOverlay" class="overlay">
+    <div class="card">
+      <p class="eyebrow">月光下的冒險，即將開始</p>
+      <h1>月光迷宫</h1>
+      <div class="gold-line"></div>
+      <p class="description">在夜色散盡前穿越迷宮，抵達頂端出口！</p>
+      <div class="instructions">
+        <p><strong>探索方式</strong>　按 W A S D 或方向鍵前進</p>
+        <p><strong>夜行倒數</strong>　你有兩分鐘完成挑戰</p>
+        <p><strong>勝利目標</strong>　找到迷宮頂端的出口</p>
+      </div>
+      <button id="btnStart" class="action">開始 ✦</button>
+    </div>
+  </div>
+
+  <div id="goOverlay" class="overlay hidden">
+    <div>
+      <h2 class="end-title">GAME OVER</h2>
+      <p class="description">月光散盡，綠籬合攏。</p>
+      <button id="btnAgain" class="action">重新挑戰</button>
+    </div>
+  </div>
+
+  <div id="winOverlay" class="overlay hidden">
+    <div>
+      <p class="eyebrow">月光為你照亮歸途</p>
+      <h2 class="end-title">勇闖迷宮成功！</h2>
+      <p class="description">你找到了出口，月光鋪成歸路。</p>
+      <button id="btnWinAgain" class="action">再次踏上旅程</button>
+    </div>
+  </div>
+
+  <script>
+    const COLS = 13, ROWS = 24, TILE = 42;
+    const GW = COLS * 2 + 1, GH = ROWS * 2 + 1;
+    const DURATION = 120000;
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const hud = document.getElementById('hud');
+    const hudTime = document.getElementById('hudTime');
+    const startOverlay = document.getElementById('startOverlay');
+    const goOverlay = document.getElementById('goOverlay');
+    const winOverlay = document.getElementById('winOverlay');
+    const keysDown = Object.create(null);
+    let grid, startCell, exitCell, player, cam, state, timeLeft, lastTs;
+    let W, H;
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    window.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      keysDown[key] = true;
+      if (state === 'playing' && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) event.preventDefault();
+    });
+    window.addEventListener('keyup', event => { keysDown[event.key.toLowerCase()] = false; });
+    window.addEventListener('blur', () => { for (const key in keysDown) delete keysDown[key]; });
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function generateMaze() {
+      grid = Array.from({ length: GH }, () => Array(GW).fill(1));
+      const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+      function carve(c, r) {
+        visited[r][c] = true;
+        grid[r * 2 + 1][c * 2 + 1] = 0;
+        for (const [dx, dy] of shuffle([[0, -1], [0, 1], [-1, 0], [1, 0]])) {
+          const nc = c + dx, nr = r + dy;
+          if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS || visited[nr][nc]) continue;
+          grid[r * 2 + 1 + dy][c * 2 + 1 + dx] = 0;
+          carve(nc, nr);
+        }
+      }
+      carve(Math.floor(COLS / 2), ROWS - 1);
+      startCell = { c: Math.floor(GW / 2), r: GH - 2 };
+      exitCell = { c: Math.floor(GW / 2), r: 1 };
+      // Open a few extra passages while keeping the outer border intact.
+      for (let i = 0; i < 22; i++) {
+        const r = 1 + Math.floor(Math.random() * (GH - 2));
+        const c = 1 + Math.floor(Math.random() * (GW - 2));
+        grid[r][c] = 0;
+      }
+    }
+
+    function center(cell) { return { x: (cell.c + .5) * TILE, y: (cell.r + .5) * TILE }; }
+
+    function resetRun() {
+      generateMaze();
+      const start = center(startCell);
+      player = { x: start.x, y: start.y, bob: 0 };
+      cam = { x: start.x, y: start.y, zoom: 1.15 };
+      timeLeft = DURATION;
+      lastTs = null;
+      state = 'title';
+      for (const key in keysDown) delete keysDown[key];
+      hud.classList.add('hidden');
+      goOverlay.classList.add('hidden');
+      winOverlay.classList.add('hidden');
+      startOverlay.classList.remove('hidden');
+      updateHud();
+    }
+
+    function startPlaying() {
+      if (state !== 'title') return;
+      state = 'playing';
+      lastTs = null;
+      startOverlay.classList.add('hidden');
+      hud.classList.remove('hidden');
+    }
+    document.getElementById('btnStart').addEventListener('click', startPlaying);
+    document.getElementById('btnAgain').addEventListener('click', resetRun);
+    document.getElementById('btnWinAgain').addEventListener('click', resetRun);
+
+    function updateHud() {
+      const seconds = Math.max(0, Math.ceil(timeLeft / 1000));
+      hudTime.textContent = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+      hudTime.style.color = seconds <= 20 ? '#e23d3d' : '#e8c547';
+    }
+
+    function blocked(x, y, radius) {
+      const c0 = Math.max(0, Math.floor((x - radius) / TILE));
+      const c1 = Math.min(GW - 1, Math.floor((x + radius) / TILE));
+      const r0 = Math.max(0, Math.floor((y - radius) / TILE));
+      const r1 = Math.min(GH - 1, Math.floor((y + radius) / TILE));
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          if (grid[r][c] !== 1) continue;
+          const closestX = Math.max(c * TILE, Math.min(x, (c + 1) * TILE));
+          const closestY = Math.max(r * TILE, Math.min(y, (r + 1) * TILE));
+          if ((x - closestX) ** 2 + (y - closestY) ** 2 < radius ** 2) return true;
+        }
+      }
+      return false;
+    }
+
+    function movePlayer(dt) {
+      let x = (keysDown.d || keysDown.arrowright ? 1 : 0) - (keysDown.a || keysDown.arrowleft ? 1 : 0);
+      let y = (keysDown.s || keysDown.arrowdown ? 1 : 0) - (keysDown.w || keysDown.arrowup ? 1 : 0);
+      const length = Math.hypot(x, y);
+      if (!length) return;
+      x = x / length * 215 * dt;
+      y = y / length * 215 * dt;
+      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(x), Math.abs(y)) / 3));
+      for (let i = 0; i < steps; i++) {
+        if (!blocked(player.x + x / steps, player.y, 9)) player.x += x / steps;
+        if (!blocked(player.x, player.y + y / steps, 9)) player.y += y / steps;
+      }
+      player.bob += dt * 10;
+    }
+
+    function screen(x, y) {
+      return { x: W / 2 + (x - cam.x) * cam.zoom, y: H / 2 + (y - cam.y) * cam.zoom };
+    }
+
+    function drawWorld() {
+      ctx.fillStyle = '#070b0a';
+      ctx.fillRect(0, 0, W, H);
+      const c0 = Math.max(0, Math.floor((cam.x - W / (2 * cam.zoom)) / TILE) - 1);
+      const c1 = Math.min(GW - 1, Math.floor((cam.x + W / (2 * cam.zoom)) / TILE) + 1);
+      const r0 = Math.max(0, Math.floor((cam.y - H / (2 * cam.zoom)) / TILE) - 1);
+      const r1 = Math.min(GH - 1, Math.floor((cam.y + H / (2 * cam.zoom)) / TILE) + 1);
+      const t = TILE * cam.zoom;
+      const colors = ['#254d32', '#2b5938', '#326340', '#396c46', '#20472e'];
+      const wallAt = (c, r) => c >= 0 && c < GW && r >= 0 && r < GH && grid[r][c] === 1;
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          const p = screen(c * TILE, r * TILE);
+          if (grid[r][c] === 1) {
+            const pixel = t / 4;
+            for (let py = 0; py < 4; py++) {
+              for (let px = 0; px < 4; px++) {
+                const hash = (c * 73 + r * 151 + px * 37 + py * 61 + px * py * 19) >>> 0;
+                ctx.fillStyle = colors[hash % colors.length];
+                ctx.fillRect(p.x + px * pixel, p.y + py * pixel, pixel + .5, pixel + .5);
+              }
+            }
+            if (!wallAt(c, r - 1)) { ctx.fillStyle = 'rgba(145,190,125,.28)'; ctx.fillRect(p.x, p.y, t, t * .1); }
+            if (!wallAt(c, r + 1)) { ctx.fillStyle = 'rgba(4,20,10,.45)'; ctx.fillRect(p.x, p.y + t * .88, t, t * .12); }
+          } else {
+            const dirt = 22 + ((c * 5 + r * 3) % 8);
+            ctx.fillStyle = `rgb(${dirt + 8},${dirt + 6},${dirt})`;
+            ctx.fillRect(p.x, p.y, t + .6, t + .6);
+            ctx.strokeStyle = 'rgba(212,160,23,.04)';
+            ctx.strokeRect(p.x + .5, p.y + .5, t, t);
+          }
+        }
+      }
+
+      const start = screen(center(startCell).x, center(startCell).y);
+      ctx.fillStyle = 'rgba(212,160,23,.18)';
+      ctx.beginPath(); ctx.arc(start.x, start.y, t * .42, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(212,160,23,.55)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(start.x, start.y, t * .32, 0, Math.PI * 2); ctx.stroke();
+
+      const exit = screen(exitCell.c * TILE, exitCell.r * TILE);
+      const glow = ctx.createLinearGradient(exit.x, exit.y - t, exit.x, exit.y + t * 2);
+      glow.addColorStop(0, 'rgba(243,234,216,.35)'); glow.addColorStop(1, 'rgba(243,234,216,0)');
+      ctx.fillStyle = glow; ctx.fillRect(exit.x - t * .2, exit.y - t * 1.4, t * 1.4, t * 3);
+      ctx.strokeStyle = '#d4a017'; ctx.lineWidth = 3;
+      ctx.strokeRect(exit.x + t * .12, exit.y + t * .08, t * .76, t * .84);
+
+      const p = screen(player.x, player.y);
+      ctx.save();
+      ctx.translate(p.x, p.y + Math.sin(player.bob) * cam.zoom * .4);
+      ctx.scale(cam.zoom, cam.zoom);
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, 12, 8, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f3ead8'; ctx.beginPath(); ctx.arc(0, -8, 6.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1b2a22'; ctx.beginPath(); ctx.arc(-.5, -9.5, 6.4, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d4a017'; ctx.fillRect(-7, -2, 14, 14);
+      ctx.fillStyle = '#2a1c08'; ctx.fillRect(-6.5, 10, 5, 7); ctx.fillRect(1.5, 10, 5, 7);
+      ctx.fillStyle = '#f3ead8'; ctx.fillRect(-10, 0, 4, 8); ctx.fillRect(6, 0, 4, 8);
+      ctx.restore();
+
+      const vignette = ctx.createRadialGradient(W / 2, H / 2, H * .2, W / 2, H / 2, H * .78);
+      vignette.addColorStop(0, 'rgba(0,0,0,0)'); vignette.addColorStop(1, 'rgba(7,11,10,.55)');
+      ctx.fillStyle = vignette; ctx.fillRect(0, 0, W, H);
+    }
+
+    function loop(ts) {
+      if (lastTs === null) lastTs = ts;
+      const dt = Math.min(.05, (ts - lastTs) / 1000);
+      lastTs = ts;
+      if (state === 'playing') {
+        timeLeft = Math.max(0, timeLeft - dt * 1000);
+        if (timeLeft === 0) {
+          state = 'gameover';
+          hud.classList.add('hidden');
+          goOverlay.classList.remove('hidden');
+        } else {
+          movePlayer(dt);
+          const exit = center(exitCell);
+          if (Math.hypot(player.x - exit.x, player.y - exit.y) < TILE * .6) {
+            state = 'win';
+            hud.classList.add('hidden');
+            winOverlay.classList.remove('hidden');
+          }
+        }
+        const follow = 1 - Math.pow(.001, dt);
+        cam.x += (player.x - cam.x) * follow;
+        cam.y += (player.y - cam.y) * follow;
+        updateHud();
+      }
+      drawWorld();
+      requestAnimationFrame(loop);
+    }
+
+    resetRun();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
