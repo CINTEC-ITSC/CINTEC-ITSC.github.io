@@ -1276,7 +1276,10 @@
             document.getElementById('quiz-overlay').classList.add('hidden');
             document.getElementById('gameover-overlay').classList.add('hidden');
             document.getElementById('game-container').classList.add('hidden');
-            document.getElementById('main-menu').classList.remove('hidden');
+            const menu = document.getElementById('main-menu');
+            menu.classList.remove('hidden');
+            menu.scrollTop = 0;
+            window.scrollTo(0, 0);
         }
 
         window.initAndStart = function() {
