@@ -310,7 +310,7 @@
         let lastRocketSalvo = 0, lastRadarBeep = 0, president = null, pendingLethal = null;
         let quizDeadline = 0, quizTimerId = null, quizKind = null, quizData = null, loopOn = false;
         let summonedGuards = 0, campaignReviveUsed = false, radarGraceUntil = 0;
-        let campaignPausedAt = 0, gameOverTimer = null;
+        let campaignPausedAt = 0, gameOverTimer = null, gameOverReturnTimer = null;
 
         function generateAlgebraQuiz() {
             for (let n = 0; n < 80; n++) {
@@ -1233,6 +1233,7 @@
             campaignPausedAt = 0;
             if (quizTimerId) clearInterval(quizTimerId);
             if (gameOverTimer) clearTimeout(gameOverTimer);
+            if (gameOverReturnTimer) clearTimeout(gameOverReturnTimer);
             document.getElementById('quiz-overlay').classList.add('hidden');
             document.getElementById('pause-overlay').classList.add('hidden');
             document.getElementById('game-modal').classList.add('hidden');
@@ -1249,6 +1250,7 @@
             flash = 1;
             shake = 18;
             gameOverTimer = setTimeout(() => btn.classList.remove('hidden'), 3000);
+            gameOverReturnTimer = setTimeout(returnToMenu, 7000);
         }
 
         function showModal(title, msg, btnText, callback) {
@@ -1269,6 +1271,7 @@
             gameActive = false; paused = false; mapBlowing = false; quizActive = false;
             campaignDeadline = 0; campaignPausedAt = 0;
             if (gameOverTimer) clearTimeout(gameOverTimer);
+            if (gameOverReturnTimer) clearTimeout(gameOverReturnTimer);
             document.getElementById('pause-overlay').classList.add('hidden');
             document.getElementById('quiz-overlay').classList.add('hidden');
             document.getElementById('gameover-overlay').classList.add('hidden');
